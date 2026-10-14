@@ -1,0 +1,18 @@
+{
+  "name": "tailor-management-system",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "seed": "npm --prefix backend run seed",
+    "migrate:tenants": "npm --prefix backend run migrate:tenants",
+    "provision:shop-admin": "npm --prefix backend run provision:shop-admin",
+    "build": "npm --prefix frontend run build",
+    "format": "prettier --write \"backend/src/**/*.js\" \"backend/test/**/*.js\" \"frontend/src/**/*.{js,jsx,css}\" \"frontend/vite.config.js\" \"package.json\" \"backend/package.json\" \"frontend/package.json\"",
+    "format:check": "prettier --check \"backend/src/**/*.js\" \"backend/test/**/*.js\" \"frontend/src/**/*.{js,jsx,css}\" \"frontend/vite.config.js\" \"package.json\" \"backend/package.json\" \"frontend/package.json\""
+  },
+  "devDependencies": {
+    "prettier": "^3.9.10"
+  }
+}

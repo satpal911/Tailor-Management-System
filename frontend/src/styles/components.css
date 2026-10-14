@@ -1,0 +1,124 @@
+/* Tailwind component layer for the operational pages that still use shared
+   semantic classes. New screen layouts use Tailwind utilities in JSX. */
+@reference 'tailwindcss';
+.card,
+.metric,
+.team-card,
+.measurement-card,
+.profile-card,
+.catalog-panel,
+.appointment-card,
+.notification-row,
+.role-card {
+  @apply rounded-xl border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] shadow-sm;
+}
+
+.page-head {
+  @apply mb-6 flex flex-wrap items-end justify-between gap-4;
+}
+.page-head h1 {
+  @apply mt-2 font-serif text-3xl font-semibold leading-tight tracking-tight text-[var(--ink)] sm:text-4xl;
+}
+.page-head p {
+  @apply mt-2 text-sm leading-6 text-[var(--muted)];
+}
+.eyebrow {
+  @apply text-[10px] font-bold tracking-[.16em] text-[var(--sage)];
+}
+.panel-title {
+  @apply flex items-center justify-between gap-4 border-b border-[var(--line)] py-4;
+}
+.panel-title h2,
+.section-heading h2,
+.section-heading h3 {
+  @apply text-sm font-semibold text-[var(--ink)];
+}
+.panel-title p,
+.section-heading p {
+  @apply mt-1 text-xs leading-5 text-[var(--muted)];
+}
+
+.button {
+  @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold no-underline transition duration-200 hover:-translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gold)] disabled:pointer-events-none disabled:opacity-60;
+}
+.button-primary {
+  @apply border-transparent bg-[var(--navy)] text-white shadow-sm hover:brightness-110 dark:text-slate-900;
+}
+.button-outline {
+  @apply border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] hover:bg-[var(--surface-soft)];
+}
+.field {
+  @apply mb-4 grid gap-2 text-sm font-medium text-[var(--ink)];
+}
+.field input,
+.field select,
+.field textarea,
+.filterbar select,
+.inline-select,
+.full-select,
+.note-form input {
+  @apply min-h-10 rounded-lg border border-[var(--line)] bg-[var(--paper)] px-3 text-sm text-[var(--ink)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--sage)] focus:ring-4 focus:ring-emerald-900/10;
+}
+.field input,
+.field select,
+.field textarea {
+  @apply w-full;
+}
+.field textarea {
+  @apply min-h-24 py-2;
+}
+.field-error {
+  @apply text-xs font-medium text-rose-700 dark:text-rose-300;
+}
+.search-box {
+  @apply flex min-h-10 items-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--paper)] px-3 text-[var(--muted)] focus-within:ring-2 focus-within:ring-[var(--sage)];
+}
+.search-box input {
+  @apply min-w-0 flex-1 bg-transparent text-sm text-[var(--ink)] outline-none placeholder:text-[var(--muted)];
+}
+
+.table-wrap {
+  @apply max-w-full overflow-x-auto rounded-xl border border-[var(--line)];
+}
+.data-table {
+  @apply w-full border-collapse text-left text-sm;
+}
+.data-table th {
+  @apply bg-[var(--surface-soft)] px-3 py-3 text-[10px] font-bold tracking-wider text-[var(--muted)];
+}
+.data-table td {
+  @apply border-t border-[var(--line)] px-3 py-3 text-sm leading-5 text-[var(--ink)];
+}
+.data-table tbody tr {
+  @apply transition-colors hover:bg-[var(--surface-soft)];
+}
+.badge {
+  @apply inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold;
+}
+.empty-state {
+  @apply grid justify-items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-6 py-9 text-center text-sm text-[var(--muted)];
+}
+.empty-state b {
+  @apply text-base font-semibold text-[var(--ink)];
+}
+.toast {
+  @apply rounded-xl px-4 py-3 text-sm shadow-lg;
+}
+.modal-backdrop {
+  @apply fixed inset-0 z-[60] grid place-items-center bg-slate-950/60 p-4 backdrop-blur-sm;
+}
+.modal {
+  @apply max-h-[90vh] w-full max-w-xl overflow-auto rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-6 text-[var(--ink)] shadow-2xl;
+}
+
+@media (max-width: 640px) {
+  .page-head h1 {
+    @apply text-2xl;
+  }
+  .data-table {
+    min-width: 600px;
+  }
+  .filterbar {
+    @apply flex-wrap gap-2;
+  }
+}

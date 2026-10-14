@@ -1,0 +1,11 @@
+import { Router } from 'express';
+import { param } from 'express-validator';
+import { listNotifications, markRead, markAllRead } from '../controllers/notificationController.js';
+import { protect } from '../middleware/authMiddleware.js';
+import { validate } from '../middleware/validate.js';
+const r = Router();
+r.use(protect);
+r.get('/', listNotifications);
+r.patch('/read-all', markAllRead);
+r.patch('/:id/read', param('id').isMongoId(), validate, markRead);
+export default r;
