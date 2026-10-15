@@ -18,7 +18,12 @@ const schema = new mongoose.Schema(
       enum: ['FITTING', 'MEASUREMENT', 'PICKUP', 'CONSULTATION', 'OTHER'],
       default: 'FITTING',
     },
-    status: { type: String, enum: ['SCHEDULED', 'COMPLETED', 'CANCELLED'], default: 'SCHEDULED' },
+    status: {
+      type: String,
+      enum: ['PENDING', 'SCHEDULED', 'COMPLETED', 'CANCELLED', 'REJECTED'],
+      default: 'SCHEDULED',
+      index: true,
+    },
     notes: { type: String, trim: true, default: '' },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   },

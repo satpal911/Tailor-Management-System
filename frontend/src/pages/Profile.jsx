@@ -145,7 +145,7 @@ export default function Profile() {
               </>
             )}
             <div className="actions">
-              <Button disabled={busy || !isDirty}>
+              <Button type="submit" disabled={busy || !isDirty}>
                 {busy ? 'Saving…' : 'Save changes'} <Check size={14} />
               </Button>
             </div>

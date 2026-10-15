@@ -62,7 +62,7 @@ export const services = crud(
 
 export const listTailors = asyncHandler(async (_req, res) => {
   const rows = await Tailor.find()
-    .populate('user', 'name email phone isActive accountStatus')
+    .populate('user', 'name email phone isActive accountStatus defaultBaseSalary')
     .sort({ name: 1 });
   res.json({ success: true, data: rows });
 });

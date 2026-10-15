@@ -824,6 +824,38 @@ test(
             (await call(`/orders/${order._id}`, { token: tailorToken })).response.status,
             200,
           );
+          const customerMessage = await call(`/orders/${order._id}/notes`, {
+            method: 'POST',
+            token: customerToken,
+            body: { text: 'Can we change my fitting time?' },
+          });
+          assert.equal(customerMessage.response.status, 201);
+          const adminReply = await call(`/orders/${order._id}/notes`, {
+            method: 'POST',
+            token: adminToken,
+            body: { text: 'Yes, we can change your fitting time.' },
+          });
+          assert.equal(adminReply.response.status, 201);
+          assert.equal(adminReply.payload.data.internal, false);
+          const customerThread = await call(`/orders/${order._id}`, { token: customerToken });
+          assert.ok(
+            customerThread.payload.data.notes.some(
+              (note) => note.text === 'Yes, we can change your fitting time.',
+            ),
+          );
+          await call(`/orders/${order._id}/notes`, {
+            method: 'POST',
+            token: adminToken,
+            body: { text: 'Private workshop note', internal: true },
+          });
+          const threadAfterPrivateNote = await call(`/orders/${order._id}`, {
+            token: customerToken,
+          });
+          assert.ok(
+            !threadAfterPrivateNote.payload.data.notes.some(
+              (note) => note.text === 'Private workshop note',
+            ),
+          );
           const foreign = await call(`/orders/${order._id}/status`, {
             method: 'PATCH',
             token: (await User.findById(tailorProfile.user).select('_id')) ? tailorToken : '',
@@ -973,6 +1005,56 @@ test(
         assert.equal(completed.payload.data.status, 'COMPLETED');
       });
 
+      await t.test('customer appointments require approval and a tailor assignment', async () => {
+        const request = await call('/appointments', {
+          method: 'POST',
+          token: customerToken,
+          body: {
+            title: 'Customer fitting request',
+            type: 'FITTING',
+            scheduledAt: new Date(Date.now() + 3 * 86400000).toISOString(),
+          },
+        });
+        assert.equal(request.response.status, 201, JSON.stringify(request.payload));
+        assert.equal(request.payload.data.status, 'PENDING');
+        const appointmentId = request.payload.data._id;
+        assert.equal(
+          (
+            await call(`/appointments/${appointmentId}`, {
+              method: 'PATCH',
+              token: adminToken,
+              body: { status: 'SCHEDULED' },
+            })
+          ).response.status,
+          400,
+        );
+        const adminApproval = await call(`/appointments/${appointmentId}`, {
+          method: 'PATCH',
+          token: adminToken,
+          body: { status: 'SCHEDULED', tailor: String(tailorProfile._id) },
+        });
+        assert.equal(adminApproval.response.status, 200, JSON.stringify(adminApproval.payload));
+        assert.equal(String(adminApproval.payload.data.tailor._id), String(tailorProfile._id));
+
+        const tailorRequest = await call('/appointments', {
+          method: 'POST',
+          token: otherCustomerToken,
+          body: {
+            title: 'Tailor approval request',
+            type: 'MEASUREMENT',
+            scheduledAt: new Date(Date.now() + 4 * 86400000).toISOString(),
+          },
+        });
+        assert.equal(tailorRequest.response.status, 201);
+        const tailorApproval = await call(`/appointments/${tailorRequest.payload.data._id}`, {
+          method: 'PATCH',
+          token: tailorToken,
+          body: { status: 'SCHEDULED' },
+        });
+        assert.equal(tailorApproval.response.status, 200, JSON.stringify(tailorApproval.payload));
+        assert.equal(String(tailorApproval.payload.data.tailor._id), String(tailorProfile._id));
+      });
+
       await t.test(
         'payroll is admin-managed and each tailor sees only their own records',
         async () => {
@@ -999,6 +1081,7 @@ test(
           assert.equal(first.response.status, 201, JSON.stringify(first.payload));
           const salaryId = first.payload.data._id;
           assert.equal(first.payload.data.netSalary, 30500);
+          assert.equal((await User.findById(tailorProfile.user)).defaultBaseSalary, 30000);
           assert.equal(
             (
               await call('/salaries', {
@@ -1082,6 +1165,23 @@ test(
           assert.ok(
             await mongoose.model('AuditLog').exists({ entity: 'Salary', entityId: salaryId }),
           );
+          const changedBaseSalary = await call('/salaries/base-salary', {
+            method: 'PATCH',
+            token: adminToken,
+            body: { employee: tailorProfile.user, baseSalary: 32000 },
+          });
+          assert.equal(changedBaseSalary.response.status, 200);
+          const nextMonthSalary = await call('/salaries', {
+            method: 'POST',
+            token: adminToken,
+            body: { employee: tailorProfile.user, month: 11, year: 2026 },
+          });
+          assert.equal(
+            nextMonthSalary.response.status,
+            201,
+            JSON.stringify(nextMonthSalary.payload),
+          );
+          assert.equal(nextMonthSalary.payload.data.baseSalary, 32000);
         },
       );
 

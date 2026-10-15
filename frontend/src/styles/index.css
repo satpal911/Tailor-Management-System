@@ -1902,11 +1902,28 @@ a {
 }
 .measurement-cards {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 10px;
 }
+.measurement-customer-groups {
+  display: grid;
+  gap: 18px;
+}
+.measurement-customer-group > h2 {
+  margin: 0 0 9px;
+  color: var(--ink);
+  font-size: 14px;
+}
+.measurement-customer-group > h2 small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
 .measurement-card {
-  padding: 13px;
+  min-width: 0;
+  padding: 16px;
 }
 .measurement-card header {
   display: flex;
@@ -1930,39 +1947,39 @@ a {
   display: block;
 }
 .measurement-card header b {
-  font-size: 9px;
+  font-size: 14px;
 }
 .measurement-card header small {
-  font-size: 8px;
-  color: #96998e;
+  font-size: 12px;
+  color: var(--muted);
   margin-top: 3px;
 }
 .measurement-card header time {
-  font-size: 7px;
-  color: #a0a297;
+  font-size: 11px;
+  color: var(--muted);
 }
 .measure-values {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
   gap: 7px;
   padding: 12px 0;
 }
 .measure-values > span {
   padding: 7px;
-  background: #f7f7f3;
+  background: var(--surface-soft);
   border-radius: 5px;
-  font-size: 7px;
+  font-size: 11px;
   color: #85887d;
 }
 .measure-values b {
   display: block;
-  font-size: 11px;
-  color: #444a40;
+  font-size: 14px;
+  color: var(--ink);
   margin-top: 4px;
 }
 .measurement-card > p {
-  font-size: 8px;
-  color: #898d81;
+  font-size: 12px;
+  color: var(--muted);
   border-top: 1px solid #eff0e9;
   padding-top: 9px;
   margin: 0;

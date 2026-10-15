@@ -86,7 +86,7 @@ export default function Payments() {
       <div className="metric-grid">
         <Metric
           icon={ArrowDownLeft}
-          label="Net collected"
+          label="Net paid"
           value={money(amount)}
           note="Net of displayed receipts and refunds"
         />
@@ -116,7 +116,7 @@ export default function Payments() {
           <div className="panel-title">
             <div>
               <h2>Payment history</h2>
-              <p>Every collection and refund recorded.</p>
+              <p>Every payment and refund recorded.</p>
             </div>
           </div>
           <div className="table-wrap">

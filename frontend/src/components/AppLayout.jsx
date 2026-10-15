@@ -131,6 +131,10 @@ export default function AppLayout() {
       window.dispatchEvent(new CustomEvent('order-status-updated', { detail: event }));
     };
     const created = (event) => toast(`New order ${event.orderNumber} received`);
+    const message = (event) =>
+      window.dispatchEvent(new CustomEvent('order-note-added', { detail: event }));
+    const appointment = (event) =>
+      window.dispatchEvent(new CustomEvent('appointments:refresh', { detail: event }));
     const notification = (event) => {
       setUnread((count) => count + 1);
       toast(event.title);
@@ -138,6 +142,8 @@ export default function AppLayout() {
     };
     socket.on('order:updated', updated);
     socket.on('order:created', created);
+    socket.on('order:message', message);
+    socket.on('appointment:updated', appointment);
     socket.on('notification:new', notification);
     return () => {
       socket.removeAllListeners();

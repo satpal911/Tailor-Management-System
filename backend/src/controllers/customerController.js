@@ -183,7 +183,10 @@ export const listMeasurements = asyncHandler(async (req, res) => {
       throw Object.assign(new Error('Measurement access denied'), { statusCode: 403 });
     filter.customer = req.query.customer;
   }
-  const data = await Measurement.find(filter).sort({ updatedAt: -1 }).limit(100);
+  const data = await Measurement.find(filter)
+    .populate('customer', 'name')
+    .sort({ customer: 1, updatedAt: -1 })
+    .limit(200);
   res.json({ success: true, data });
 });
 export const createMeasurement = asyncHandler(async (req, res) => {

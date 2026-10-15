@@ -19,7 +19,7 @@ const blank = {
 };
 
 export default function Payroll() {
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
   const { toast } = useToast();
   const admin = user.role === ROLES.ADMIN;
   const [rows, setRows] = useState([]);
@@ -29,6 +29,7 @@ export default function Payroll() {
   const [selected, setSelected] = useState(null);
   const form = useForm({ defaultValues: blank });
   const paymentForm = useForm();
+  const baseSalaryForm = useForm();
 
   async function load() {
     try {
@@ -59,6 +60,10 @@ export default function Payroll() {
     form.reset(blank);
     setModal('salary');
   }
+  function openBaseSalary() {
+    baseSalaryForm.reset({ employee: '', baseSalary: admin ? '' : (user.defaultBaseSalary ?? '') });
+    setModal('base-salary');
+  }
   function openEdit(row) {
     setSelected(row);
     form.reset({
@@ -78,7 +83,10 @@ export default function Payroll() {
       ...values,
       month: Number(values.month),
       year: Number(values.year),
-      baseSalary: Number(values.baseSalary),
+      baseSalary:
+        values.baseSalary === '' || values.baseSalary === undefined
+          ? undefined
+          : Number(values.baseSalary),
       bonuses: Number(values.bonuses || 0),
       overtime: Number(values.overtime || 0),
       deductions: Number(values.deductions || 0),
@@ -89,6 +97,20 @@ export default function Payroll() {
       else await api.post('/salaries', { ...payload, employee: values.employee });
       toast(selected ? 'Salary updated' : 'Salary created');
       setModal('');
+      await load();
+    } catch (error) {
+      toast(errorMessage(error), 'error');
+    }
+  }
+  async function saveBaseSalary(values) {
+    try {
+      await api.patch('/salaries/base-salary', {
+        baseSalary: Number(values.baseSalary),
+        ...(admin ? { employee: values.employee } : {}),
+      });
+      toast('Base salary saved');
+      setModal('');
+      await refresh();
       await load();
     } catch (error) {
       toast(errorMessage(error), 'error');
@@ -136,8 +158,18 @@ export default function Payroll() {
         }
       >
         {admin && (
-          <Button onClick={openCreate} icon={Plus}>
-            Add salary
+          <>
+            <Button variant="outline" onClick={openBaseSalary}>
+              Change base salary
+            </Button>
+            <Button onClick={openCreate} icon={Plus}>
+              Add salary
+            </Button>
+          </>
+        )}
+        {!admin && (
+          <Button variant="outline" onClick={openBaseSalary}>
+            Change base salary
           </Button>
         )}
       </PageHeader>
@@ -295,7 +327,16 @@ export default function Payroll() {
             {!selected && (
               <label className="field">
                 Employee
-                <select required {...form.register('employee', { required: true })}>
+                <select
+                  required
+                  {...form.register('employee', {
+                    required: true,
+                    onChange: (event) => {
+                      const employee = staff.find((person) => person._id === event.target.value);
+                      form.setValue('baseSalary', employee?.defaultBaseSalary ?? '');
+                    },
+                  })}
+                >
                   <option value="">Select an active staff member</option>
                   {staff.map((person) => (
                     <option key={person._id} value={person._id}>
@@ -334,9 +375,22 @@ export default function Payroll() {
                   type="number"
                   min="0"
                   step="0.01"
-                  required={key === 'baseSalary'}
+                  required={
+                    key === 'baseSalary' &&
+                    Boolean(
+                      selected ||
+                      staff.find((person) => person._id === form.watch('employee'))
+                        ?.defaultBaseSalary == null,
+                    )
+                  }
                   {...form.register(key, { min: 0 })}
                 />
+                {key === 'baseSalary' &&
+                  !selected &&
+                  staff.find((person) => person._id === form.watch('employee'))
+                    ?.defaultBaseSalary != null && (
+                    <small>Uses the saved default; change it to override this period only.</small>
+                  )}
               </label>
             ))}
             <label className="field">
@@ -385,6 +439,52 @@ export default function Payroll() {
               <input maxLength="120" {...paymentForm.register('reference')} />
             </label>
             <Button type="submit">Save payment</Button>
+          </form>
+        </Modal>
+      )}
+      {modal === 'base-salary' && (
+        <Modal
+          title={admin ? 'Change employee base salary' : 'Change base salary'}
+          onClose={() => setModal('')}
+        >
+          <form onSubmit={baseSalaryForm.handleSubmit(saveBaseSalary)}>
+            {admin && (
+              <label className="field">
+                Employee
+                <select
+                  required
+                  {...baseSalaryForm.register('employee', {
+                    required: true,
+                    onChange: (event) => {
+                      const employee = staff.find((person) => person._id === event.target.value);
+                      baseSalaryForm.setValue('baseSalary', employee?.defaultBaseSalary ?? '');
+                    },
+                  })}
+                >
+                  <option value="">Select an active tailor</option>
+                  {staff.map((person) => (
+                    <option key={person._id} value={person._id}>
+                      {person.name} · {person.phone}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <label className="field">
+              Monthly base salary
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                required
+                {...baseSalaryForm.register('baseSalary', {
+                  required: true,
+                  min: 0,
+                  valueAsNumber: true,
+                })}
+              />
+            </label>
+            <Button type="submit">Save base salary</Button>
           </form>
         </Modal>
       )}

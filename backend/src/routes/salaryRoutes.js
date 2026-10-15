@@ -6,6 +6,7 @@ import {
   createSalary,
   listSalaries,
   recordSalaryPayment,
+  setBaseSalary,
   updateSalary,
 } from '../controllers/salaryController.js';
 
@@ -22,13 +23,23 @@ router.get(
   validate,
   listSalaries,
 );
+router.patch(
+  '/base-salary',
+  allowRoles('ADMIN', 'TAILOR'),
+  body('employee')
+    .if((_value, { req }) => req.user?.role === 'ADMIN')
+    .isMongoId(),
+  body('baseSalary').isFloat({ min: 0 }),
+  validate,
+  setBaseSalary,
+);
 router.post(
   '/',
   allowRoles('ADMIN'),
   body('employee').isMongoId(),
   body('month').isInt({ min: 1, max: 12 }),
   body('year').isInt({ min: 2000, max: 2200 }),
-  body('baseSalary').isFloat({ min: 0 }),
+  body('baseSalary').optional().isFloat({ min: 0 }),
   body('bonuses').optional().isFloat({ min: 0 }),
   body('overtime').optional().isFloat({ min: 0 }),
   body('deductions').optional().isFloat({ min: 0 }),

@@ -28,14 +28,19 @@ export const createSalary = asyncHandler(async (req, res) => {
     role: { $in: ['TAILOR', 'ADMIN'] },
     accountStatus: 'ACTIVE',
     isActive: true,
-  }).select('_id');
+  }).select('_id defaultBaseSalary');
   if (!employee)
     throw Object.assign(new Error('Active staff employee not found'), { statusCode: 404 });
+  const baseSalary = req.body.baseSalary ?? employee.defaultBaseSalary;
+  if (baseSalary === null || baseSalary === undefined)
+    throw Object.assign(new Error('Set a base salary before creating a salary record'), {
+      statusCode: 400,
+    });
   const row = await Salary.create({
     employee: employee._id,
     month: req.body.month,
     year: req.body.year,
-    baseSalary: req.body.baseSalary,
+    baseSalary,
     bonuses: req.body.bonuses || 0,
     overtime: req.body.overtime || 0,
     deductions: req.body.deductions || 0,
@@ -44,6 +49,9 @@ export const createSalary = asyncHandler(async (req, res) => {
     createdBy: req.user._id,
     updatedBy: req.user._id,
   });
+  if (employee.defaultBaseSalary === null || employee.defaultBaseSalary === undefined) {
+    await User.updateOne({ _id: employee._id }, { $set: { defaultBaseSalary: baseSalary } });
+  }
   await audit(
     req.user._id,
     'CREATE',
@@ -53,6 +61,29 @@ export const createSalary = asyncHandler(async (req, res) => {
     req.ip,
   );
   res.status(201).json({ success: true, data: await row.populate('employee', 'name phone role') });
+});
+
+export const setBaseSalary = asyncHandler(async (req, res) => {
+  const employeeId = req.user.role === 'TAILOR' ? req.user._id : req.body.employee;
+  const employee = await User.findOne({
+    _id: employeeId,
+    role: { $in: ['TAILOR', 'ADMIN'] },
+    accountStatus: 'ACTIVE',
+    isActive: true,
+  });
+  if (!employee)
+    throw Object.assign(new Error('Active staff employee not found'), { statusCode: 404 });
+  employee.defaultBaseSalary = Number(req.body.baseSalary);
+  await employee.save();
+  await audit(
+    req.user._id,
+    'SET_BASE_SALARY',
+    'User',
+    employee._id,
+    { baseSalary: employee.defaultBaseSalary },
+    req.ip,
+  );
+  res.json({ success: true, data: { user: employee.toSafeJSON() } });
 });
 
 export const updateSalary = asyncHandler(async (req, res) => {

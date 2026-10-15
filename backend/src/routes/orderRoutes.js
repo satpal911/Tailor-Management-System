@@ -56,6 +56,7 @@ r.post(
   '/:id/notes',
   param('id').isMongoId(),
   body('text').trim().isLength({ min: 1, max: 2000 }),
+  body('internal').optional().isBoolean().toBoolean(),
   validate,
   addOrderNote,
 );

@@ -303,12 +303,46 @@ export const addOrderNote = asyncHandler(async (req, res) => {
     if (!customer || String(customer._id) !== String(order.customer))
       throw Object.assign(new Error('Order not found'), { statusCode: 404 });
   }
+  const internal = req.user.role !== 'CUSTOMER' && req.body.internal === true;
   order.notes.push({
     author: req.user._id,
     text: req.body.text,
-    internal: req.user.role !== 'CUSTOMER' && req.body.internal !== false,
+    internal,
   });
   await order.save();
+  const io = req.app.get('io');
+  const customer = await Customer.findById(order.customer).select('user');
+  const tailor = order.tailor ? await Tailor.findById(order.tailor).select('user') : null;
+  const excerpt = req.body.text.length > 120 ? `${req.body.text.slice(0, 117)}…` : req.body.text;
+  const messageRooms = new Set();
+
+  if (req.user.role === 'CUSTOMER') {
+    messageRooms.add(`tenant:${order.tenantId}:role:ADMIN`);
+    await notifyRole(
+      'ADMIN',
+      'New customer message',
+      `${req.user.name}: ${excerpt}`,
+      'ORDER',
+      `/app/orders/${order._id}`,
+      io,
+    );
+    if (tailor?.user) messageRooms.add(`tenant:${order.tenantId}:user:${tailor.user}`);
+  } else if (!internal && customer?.user) {
+    messageRooms.add(`tenant:${order.tenantId}:user:${customer.user}`);
+    const notification = await notifyUser(
+      customer.user,
+      'New message from the atelier',
+      excerpt,
+      'ORDER',
+      `/app/my-orders/${order._id}`,
+    );
+    pushNotification(io, notification);
+  } else if (req.user.role === 'TAILOR') {
+    messageRooms.add(`tenant:${order.tenantId}:role:ADMIN`);
+  } else if (tailor?.user) {
+    messageRooms.add(`tenant:${order.tenantId}:user:${tailor.user}`);
+  }
+  for (const room of messageRooms) io?.to(room).emit('order:message', { id: String(order._id) });
   res.status(201).json({ success: true, data: order.notes.at(-1) });
 });
 

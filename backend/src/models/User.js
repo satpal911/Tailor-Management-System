@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: Object.values(ROLES), default: ROLES.CUSTOMER, index: true },
     phone: { type: String, trim: true, default: '' },
     phoneNormalized: { type: String },
+    defaultBaseSalary: { type: Number, min: 0, default: null },
     accountStatus: {
       type: String,
       enum: ['PENDING', 'ACTIVE', 'INACTIVE', 'REJECTED'],

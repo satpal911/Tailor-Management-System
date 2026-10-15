@@ -69,8 +69,22 @@ export default function Measurements() {
     }
   }
   const filtered = rows.filter((m) =>
-    `${m.name} ${m.garmentType}`.toLowerCase().includes(search.toLowerCase()),
+    `${m.customer?.name || ''} ${m.name} ${m.garmentType}`
+      .toLowerCase()
+      .includes(search.toLowerCase()),
   );
+  const customerGroups = filtered.reduce((groups, measurement) => {
+    const customerId = measurement.customer?._id || 'my-measurements';
+    const group = groups.find((entry) => entry.id === customerId);
+    if (group) group.measurements.push(measurement);
+    else
+      groups.push({
+        id: customerId,
+        name: measurement.customer?.name || user.name,
+        measurements: [measurement],
+      });
+    return groups;
+  }, []);
   return (
     <>
       <PageHeader
@@ -86,7 +100,7 @@ export default function Measurements() {
         <label className="search-box">
           <Search size={15} />
           <input
-            placeholder="Search profiles…"
+            placeholder="Search customer or garment…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -98,43 +112,54 @@ export default function Measurements() {
       {busy ? (
         <Loading />
       ) : (
-        <div className="measurement-cards">
-          {filtered.map((m) => (
-            <article className="card measurement-card" key={m._id}>
-              <header>
-                <span className="measurement-icon">
-                  <Ruler size={17} />
-                </span>
-                <span>
-                  <b>{m.name}</b>
-                  <small>
-                    {m.garmentType} · {m.unit}
-                  </small>
-                </span>
-                <time>{new Date(m.updatedAt).toLocaleDateString()}</time>
-              </header>
-              <div className="measure-values">
-                {Object.entries(m.values || {}).map(([k, v]) => (
-                  <span key={k}>
-                    {k}
-                    <b>
-                      {v} {m.unit}
-                    </b>
-                  </span>
-                ))}
-                {m.customMeasurements?.map((x) => (
-                  <span key={x.name}>
-                    {x.name}
-                    <b>
-                      {x.value} {m.unit}
-                    </b>
-                  </span>
+        <div className="measurement-customer-groups">
+          {customerGroups.map((group) => (
+            <section className="measurement-customer-group" key={group.id}>
+              {user.role !== ROLES.CUSTOMER && (
+                <h2>
+                  {group.name} <small>Customer ID: {group.id}</small>
+                </h2>
+              )}
+              <div className="measurement-cards">
+                {group.measurements.map((m) => (
+                  <article className="card measurement-card" key={m._id}>
+                    <header>
+                      <span className="measurement-icon">
+                        <Ruler size={17} />
+                      </span>
+                      <span>
+                        <b>{m.name}</b>
+                        <small>
+                          {m.garmentType} · {m.unit}
+                        </small>
+                      </span>
+                      <time>{new Date(m.updatedAt).toLocaleDateString()}</time>
+                    </header>
+                    <div className="measure-values">
+                      {Object.entries(m.values || {}).map(([k, v]) => (
+                        <span key={k}>
+                          {k}
+                          <b>
+                            {v} {m.unit}
+                          </b>
+                        </span>
+                      ))}
+                      {m.customMeasurements?.map((x) => (
+                        <span key={x.name}>
+                          {x.name}
+                          <b>
+                            {x.value} {m.unit}
+                          </b>
+                        </span>
+                      ))}
+                    </div>
+                    {m.notes && <p>{m.notes}</p>}
+                  </article>
                 ))}
               </div>
-              {m.notes && <p>{m.notes}</p>}
-            </article>
+            </section>
           ))}
-          {!filtered.length && (
+          {!customerGroups.length && (
             <div className="card empty-state">
               <b>No measurement profiles</b>
               <span>Start a profile to remember a customer’s fit.</span>

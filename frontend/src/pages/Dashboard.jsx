@@ -122,7 +122,7 @@ export default function Dashboard() {
     [Activity, 'In progress', data.activeOrders ?? 0, 'Moving through the workroom'],
     [Scissors, 'Available tailors', data.tailors ?? 0, 'Active team members'],
     [CalendarDays, 'Today’s fittings', data.todayAppointments ?? 0, 'Scheduled appointments'],
-    [Wallet, 'Net collected', money(data.revenue), 'Payments less recorded refunds'],
+    [Wallet, 'Net paid', money(data.revenue), 'Payments less recorded refunds'],
     [
       Wallet,
       'Customer balances',

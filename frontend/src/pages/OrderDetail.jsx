@@ -59,6 +59,7 @@ export default function OrderDetail() {
   const [error, setError] = useState('');
   const [actionBusy, setActionBusy] = useState('');
   const [cancelConfirmation, setCancelConfirmation] = useState(false);
+  const [internalNote, setInternalNote] = useState(false);
   const customerView = user.role === ROLES.CUSTOMER;
 
   const load = useCallback(async () => {
@@ -79,8 +80,15 @@ export default function OrderDetail() {
     const onUpdate = (event) => {
       if (event.detail?.id === id) load();
     };
+    const onNoteAdded = (event) => {
+      if (event.detail?.id === id) load();
+    };
     window.addEventListener('order-status-updated', onUpdate);
-    return () => window.removeEventListener('order-status-updated', onUpdate);
+    window.addEventListener('order-note-added', onNoteAdded);
+    return () => {
+      window.removeEventListener('order-status-updated', onUpdate);
+      window.removeEventListener('order-note-added', onNoteAdded);
+    };
   }, [id, load]);
 
   useEffect(() => {
@@ -129,8 +137,12 @@ export default function OrderDetail() {
     if (!note.trim() || actionBusy) return;
     setActionBusy('note');
     try {
-      await api.post(`/orders/${id}/notes`, { text: note.trim(), internal: !customerView });
+      await api.post(`/orders/${id}/notes`, {
+        text: note.trim(),
+        internal: !customerView && internalNote,
+      });
       setNote('');
+      setInternalNote(false);
       toast('Note added');
       await load();
     } catch (reason) {
@@ -378,7 +390,7 @@ export default function OrderDetail() {
                 </Link>
               )}
             {customerView && (
-              <Link to="/app/payments" className="button button-outline">
+              <Link to="/app/payments" className="button button-outline payment-history-button">
                 <Wallet size={15} /> View payment history
               </Link>
             )}
@@ -665,6 +677,16 @@ export default function OrderDetail() {
               )}
             </button>
           </form>
+          {!customerView && (
+            <label className="internal-note-toggle">
+              <input
+                type="checkbox"
+                checked={internalNote}
+                onChange={(event) => setInternalNote(event.target.checked)}
+              />
+              Keep this message private to the team
+            </label>
+          )}
         </section>
       </div>
       {cancelConfirmation && (

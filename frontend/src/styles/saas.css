@@ -1658,6 +1658,27 @@ body,
 .tracking-notes .note-form button {
   min-width: 84px;
 }
+.tracking-notes .note-form .button-primary {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #fff;
+}
+.tracking-payment .payment-history-button {
+  background: var(--surface-soft);
+  border-color: var(--line);
+  color: var(--ink);
+}
+.internal-note-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.internal-note-toggle input {
+  accent-color: var(--navy);
+}
 .tracking-notes .note-form button span {
   font-size: 11px;
 }
@@ -2547,6 +2568,16 @@ body,
   background: #b89556;
   color: #101827;
   border-color: #b89556;
+}
+:root[data-theme='dark'] .tracking-notes .note-form .button-primary {
+  background: #b89556;
+  border-color: #b89556;
+  color: #101827;
+}
+:root[data-theme='dark'] .tracking-payment .payment-history-button {
+  background: var(--surface-soft);
+  border-color: var(--line);
+  color: var(--ink);
 }
 :root[data-theme='dark'] .button-primary:hover {
   background: #d2b575;
