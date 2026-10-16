@@ -67,15 +67,17 @@ export function Button({
 }
 export function PageHeader({ eyebrow, title, subtitle, children }) {
   return (
-    <div className="mb-7 flex flex-wrap items-end justify-between gap-5">
-      <div className="min-w-0">
+    <div className="app-page-header">
+      <div className="app-page-header-copy">
         <span className="text-[11px] font-bold tracking-[.16em] text-[var(--sage)]">{eyebrow}</span>
-        <h1 className="mt-2 font-serif text-3xl font-semibold leading-tight tracking-tight text-[var(--ink)] sm:text-4xl">
+        <h1 className="app-page-title font-serif font-semibold leading-tight tracking-tight text-[var(--ink)]">
           {title}
         </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">{subtitle}</p>
+        <p className="app-page-subtitle max-w-2xl text-sm leading-6 text-[var(--muted)]">
+          {subtitle}
+        </p>
       </div>
-      {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
+      {children && <div className="app-page-header-actions">{children}</div>}
     </div>
   );
 }
@@ -229,14 +231,14 @@ export function Modal({ title, children, onClose }) {
   }, [onClose]);
   return (
     <div
-      className="modal-backdrop fixed inset-0 z-[60] grid place-items-center bg-slate-950/60 p-4 backdrop-blur-sm"
+      className="app-modal-backdrop modal-backdrop fixed inset-0 z-[60] grid place-items-center bg-slate-950/60 backdrop-blur-sm"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
       <section
         ref={modalRef}
-        className="modal max-h-[90vh] w-full max-w-xl overflow-auto rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-6 text-[var(--ink)] shadow-2xl"
+        className="app-modal modal w-full max-w-xl overflow-auto rounded-2xl border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -262,19 +264,19 @@ export function Modal({ title, children, onClose }) {
 }
 export function Metric({ label, value, note, icon: Icon }) {
   return (
-    <article className="group min-w-0 rounded-xl border border-[var(--line)] bg-[var(--paper)] p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:p-5">
+    <article className="ui-metric group min-w-0 rounded-xl border border-[var(--line)] bg-[var(--paper)] shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-[var(--muted)] sm:text-sm">{label}</span>
+        <span className="ui-metric-label font-semibold text-[var(--muted)]">{label}</span>
         {Icon && (
           <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--surface-soft)] text-[var(--sage)]">
             <Icon size={17} />
           </span>
         )}
       </div>
-      <strong className="mt-3 block break-words text-2xl font-semibold tracking-tight text-[var(--ink)] sm:text-3xl">
+      <strong className="ui-metric-value mt-3 block break-words font-semibold tracking-tight text-[var(--ink)]">
         {value}
       </strong>
-      <small className="mt-1 block text-xs leading-5 text-[var(--muted)]">{note}</small>
+      <small className="ui-metric-note mt-1 block leading-5 text-[var(--muted)]">{note}</small>
     </article>
   );
 }

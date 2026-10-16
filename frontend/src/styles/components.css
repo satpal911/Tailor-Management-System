@@ -1000,3 +1000,282 @@ textarea[aria-invalid='true'] {
     transition: none;
   }
 }
+
+.app-page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.app-page-header-copy {
+  min-width: 0;
+}
+
+.app-page-title {
+  margin: 8px 0 0;
+  font-size: clamp(28px, 2.4vw, 36px);
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+.app-page-subtitle {
+  margin: 8px 0 0;
+}
+
+.app-page-header-actions {
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 16px;
+}
+
+.ui-metric {
+  min-width: 0;
+  padding: 16px;
+}
+
+.metric .ui-metric-label {
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.metric .ui-metric-value {
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+.metric .ui-metric-note {
+  font-size: 12px;
+}
+
+.dashboard-metrics .ui-metric {
+  min-height: 0;
+}
+
+.dashboard-metrics .ui-metric .ui-metric-label {
+  font-size: 13px;
+}
+
+.dashboard-metrics .ui-metric .ui-metric-value {
+  font-size: 26px;
+}
+
+.dashboard-metrics .ui-metric .ui-metric-note {
+  font-size: 12px;
+}
+
+.field {
+  gap: 8px;
+  margin-bottom: 16px;
+  line-height: 1.45;
+}
+
+.field input,
+.field select,
+.field textarea {
+  min-height: 44px;
+}
+
+.field textarea {
+  min-height: 96px;
+  line-height: 1.5;
+}
+
+.two-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.actions {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filterbar {
+  align-items: flex-end;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px;
+}
+
+.filterbar .field {
+  min-width: min(100%, 160px);
+  flex: 1 1 160px;
+  margin: 0;
+}
+
+.filterbar .button {
+  flex: 0 0 auto;
+}
+
+.table-wrap {
+  overscroll-behavior-x: contain;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px 14px;
+  vertical-align: middle;
+}
+
+.data-table td {
+  line-height: 1.5;
+}
+
+.pagination {
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+  font-size: 13px;
+}
+
+.pagination > div {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pagination button {
+  min-height: 36px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.app-modal-backdrop {
+  overflow-y: auto;
+  padding: clamp(8px, 2vw, 20px);
+}
+
+.app-modal {
+  min-height: 0;
+  max-height: min(90dvh, 900px);
+  padding: clamp(16px, 2vw, 24px);
+  overscroll-behavior: contain;
+}
+
+.app-modal > header {
+  margin-bottom: 20px;
+}
+
+.application-form-grid {
+  row-gap: 12px;
+  column-gap: 20px;
+}
+
+.platform-console-header,
+.platform-admin-actions,
+.platform-toolbar,
+.platform-search {
+  flex-wrap: wrap;
+}
+
+.saas-marketing .hero h1 {
+  max-width: 12ch;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1150px) {
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .app-page-header {
+    gap: 14px;
+  }
+}
+
+@media (max-width: 767px) {
+  .app-page-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .app-page-header-actions {
+    justify-content: flex-start;
+  }
+
+  .ui-metric {
+    padding: 14px;
+  }
+
+  .metric .ui-metric-value,
+  .dashboard-metrics .ui-metric .ui-metric-value {
+    font-size: 23px;
+  }
+
+  .dashboard-metrics .ui-metric {
+    min-height: 0;
+  }
+
+  .dashboard-metrics .ui-metric .ui-metric-label,
+  .dashboard-metrics .ui-metric .ui-metric-note {
+    font-size: 12px;
+  }
+
+  .filterbar .field {
+    flex-basis: min(100%, 220px);
+  }
+
+  .platform-console-header {
+    align-items: flex-start;
+  }
+
+  .platform-search {
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 560px) {
+  .two-fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .application-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .application-form-grid .application-details {
+    grid-column: auto;
+  }
+
+  .app-modal-backdrop {
+    place-items: center;
+  }
+
+  .app-modal {
+    max-height: 90dvh;
+  }
+}
+
+@media (max-width: 380px) {
+  .metric-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .app-page-header-actions > .button {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .saas-marketing .hero h1 {
+    font-size: clamp(36px, 11vw, 44px);
+  }
+}
