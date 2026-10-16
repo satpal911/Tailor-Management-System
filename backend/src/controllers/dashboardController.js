@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Order from '../models/Order.js';
 import Customer from '../models/Customer.js';
 import Tailor from '../models/Tailor.js';
@@ -292,8 +293,8 @@ export const summary = asyncHandler(async (req, res) => {
 export const reports = asyncHandler(async (req, res) => {
   const orderFilter = {};
   if (req.query.status) orderFilter.status = req.query.status;
-  if (req.query.tailor) orderFilter.tailor = req.query.tailor;
-  if (req.query.customer) orderFilter.customer = req.query.customer;
+  if (req.query.tailor) orderFilter.tailor = new mongoose.Types.ObjectId(req.query.tailor);
+  if (req.query.customer) orderFilter.customer = new mongoose.Types.ObjectId(req.query.customer);
   if (req.query.paymentStatus) orderFilter.paymentStatus = req.query.paymentStatus;
   if (req.query.from || req.query.to) {
     orderFilter.createdAt = {};

@@ -37,7 +37,10 @@ export default function Reports() {
   async function load(filters = {}) {
     setLoading(true);
     try {
-      setData((await api.get('/dashboard/reports', { params: filters })).data.data);
+      const activeFilters = Object.fromEntries(
+        Object.entries(filters).filter(([, value]) => value !== '' && value != null),
+      );
+      setData((await api.get('/dashboard/reports', { params: activeFilters })).data.data);
     } catch (error) {
       toast(errorMessage(error), 'error');
     } finally {
@@ -114,8 +117,8 @@ export default function Reports() {
             ))}
           </select>
         </label>
-        <Button type="submit" disabled={loading}>
-          {loading ? 'Updating…' : 'Apply filters'}
+        <Button type="submit" loading={loading} loadingText="Updating reports…">
+          Apply filters
         </Button>
         <Button
           type="button"

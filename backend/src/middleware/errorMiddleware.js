@@ -39,10 +39,12 @@ export function errorHandler(err, req, res, _next) {
     status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
     message =
       err.code === 'LIMIT_FILE_SIZE'
-        ? 'Image exceeds the maximum allowed size'
+        ? 'Image is too large. Please upload a smaller image.'
         : err.code === 'LIMIT_FILE_COUNT'
-          ? 'Too many images'
-          : err.message;
+          ? 'You can upload up to 5 images.'
+          : err.code === 'LIMIT_UNEXPECTED_FILE'
+            ? 'Invalid image upload field. Use the images field.'
+            : 'Please upload a valid image.';
   }
   if (status >= 500 && status !== 503 && process.env.NODE_ENV !== 'production') {
     console.error('Unhandled API error:', err.name || 'Error', 'code:', err.code || 'none');

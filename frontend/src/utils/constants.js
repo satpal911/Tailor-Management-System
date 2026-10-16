@@ -24,4 +24,9 @@ export const date = (d) =>
         new Date(d),
       )
     : '—';
-export const errorMessage = (e) => e.response?.data?.message || e.message || 'Request failed';
+export const errorMessage = (e) => {
+  const errors = e.response?.data?.errors;
+  if (Array.isArray(errors) && errors.length)
+    return errors.map((error) => error.message).filter(Boolean).join(' ');
+  return e.response?.data?.message || e.message || 'Request failed';
+};

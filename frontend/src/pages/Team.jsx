@@ -4,13 +4,15 @@ import { Plus, Users } from 'lucide-react';
 import api from '../services/api.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { errorMessage } from '../utils/constants.js';
-import { Button, Loading, Modal, PageHeader } from '../components/UI.jsx';
+import { Button, Loading, Modal, PageHeader, PasswordInput } from '../components/UI.jsx';
 
 export default function Team() {
   const { toast } = useToast();
   const [rows, setRows] = useState([]);
   const [busy, setBusy] = useState(true);
   const [modal, setModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [statusSaving, setStatusSaving] = useState('');
   const { register, handleSubmit, reset } = useForm();
   async function load() {
     try {
@@ -25,6 +27,8 @@ export default function Team() {
     load();
   }, []);
   async function save(values) {
+    if (saving) return;
+    setSaving(true);
     try {
       await api.post('/tailors', {
         ...values,
@@ -40,15 +44,22 @@ export default function Team() {
       await load();
     } catch (error) {
       toast(errorMessage(error), 'error');
+    } finally {
+      setSaving(false);
     }
   }
   async function changeStatus(tailor, accountStatus) {
+    if (statusSaving) return;
+    const key = `${tailor._id}:${accountStatus}`;
+    setStatusSaving(key);
     try {
       await api.patch(`/users/${tailor.user._id}`, { accountStatus });
       toast(`Account ${accountStatus.toLowerCase()}`);
       await load();
     } catch (error) {
       toast(errorMessage(error), 'error');
+    } finally {
+      setStatusSaving('');
     }
   }
   return (
@@ -96,19 +107,46 @@ export default function Team() {
               </footer>
               {tailor.status === 'PENDING' && (
                 <div className="actions">
-                  <Button onClick={() => changeStatus(tailor, 'ACTIVE')}>Approve</Button>
-                  <Button variant="outline" onClick={() => changeStatus(tailor, 'REJECTED')}>
+                  <Button
+                    variant="success"
+                    loading={statusSaving === `${tailor._id}:ACTIVE`}
+                    disabled={Boolean(statusSaving)}
+                    loadingText="Approving…"
+                    onClick={() => changeStatus(tailor, 'ACTIVE')}
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    variant="danger"
+                    loading={statusSaving === `${tailor._id}:REJECTED`}
+                    disabled={Boolean(statusSaving)}
+                    loadingText="Rejecting…"
+                    onClick={() => changeStatus(tailor, 'REJECTED')}
+                  >
                     Reject
                   </Button>
                 </div>
               )}
               {tailor.status === 'ACTIVE' && (
-                <Button variant="outline" onClick={() => changeStatus(tailor, 'INACTIVE')}>
+                <Button
+                  variant="outline"
+                  loading={statusSaving === `${tailor._id}:INACTIVE`}
+                  disabled={Boolean(statusSaving)}
+                  loadingText="Updating…"
+                  onClick={() => changeStatus(tailor, 'INACTIVE')}
+                >
                   Deactivate
                 </Button>
               )}
               {tailor.status === 'INACTIVE' && (
-                <Button onClick={() => changeStatus(tailor, 'ACTIVE')}>Reactivate</Button>
+                <Button
+                  loading={statusSaving === `${tailor._id}:ACTIVE`}
+                  disabled={Boolean(statusSaving)}
+                  loadingText="Updating…"
+                  onClick={() => changeStatus(tailor, 'ACTIVE')}
+                >
+                  Reactivate
+                </Button>
               )}
             </article>
           ))}
@@ -147,10 +185,9 @@ export default function Team() {
             </label>
             <label className="field">
               Temporary password
-              <input
+              <PasswordInput
                 required
                 minLength={8}
-                type="password"
                 autoComplete="new-password"
                 {...register('password', { required: true, minLength: 8 })}
               />
@@ -169,7 +206,9 @@ export default function Team() {
                 {...register('capacity', { valueAsNumber: true, min: 1, max: 200 })}
               />
             </label>
-            <Button type="submit">Create tailor account</Button>
+            <Button type="submit" loading={saving} loadingText="Creating account…">
+              Create tailor account
+            </Button>
           </form>
         </Modal>
       )}

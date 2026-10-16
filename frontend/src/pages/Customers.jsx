@@ -5,7 +5,15 @@ import api from '../services/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { errorMessage } from '../utils/constants.js';
-import { Button, Loading, Modal, PageHeader, Pagination, SearchBox } from '../components/UI.jsx';
+import {
+  Button,
+  Loading,
+  Modal,
+  PageHeader,
+  Pagination,
+  PasswordInput,
+  SearchBox,
+} from '../components/UI.jsx';
 
 export default function Customers() {
   const { user } = useAuth();
@@ -17,6 +25,8 @@ export default function Customers() {
   const [busy, setBusy] = useState(true);
   const [modal, setModal] = useState(false);
   const [passwordCustomer, setPasswordCustomer] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
   const customerForm = useForm();
   const passwordForm = useForm();
 
@@ -41,6 +51,8 @@ export default function Customers() {
   }, [page, q]);
 
   async function saveCustomer(values) {
+    if (saving) return;
+    setSaving(true);
     try {
       await api.post('/customers', values);
       toast('Customer added');
@@ -49,10 +61,14 @@ export default function Customers() {
       load();
     } catch (error) {
       toast(errorMessage(error), 'error');
+    } finally {
+      setSaving(false);
     }
   }
 
   async function savePassword(values) {
+    if (savingPassword) return;
+    setSavingPassword(true);
     try {
       await api.post(`/customers/${passwordCustomer._id}/password`, { password: values.password });
       toast('Password set. Give the customer their sign-in details in person.', 'success');
@@ -60,6 +76,8 @@ export default function Customers() {
       passwordForm.reset();
     } catch (error) {
       toast(errorMessage(error), 'error');
+    } finally {
+      setSavingPassword(false);
     }
   }
 
@@ -163,7 +181,9 @@ export default function Customers() {
               <Button variant="outline" type="button" onClick={() => setModal(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Save customer</Button>
+              <Button type="submit" loading={saving} loadingText="Saving customer…">
+                Save customer
+              </Button>
             </div>
           </form>
         </Modal>
@@ -183,8 +203,7 @@ export default function Customers() {
           <form onSubmit={passwordForm.handleSubmit(savePassword)}>
             <label className="field">
               Customer-chosen password
-              <input
-                type="password"
+              <PasswordInput
                 autoComplete="new-password"
                 minLength={8}
                 maxLength={128}
@@ -207,7 +226,9 @@ export default function Customers() {
               >
                 Cancel
               </Button>
-              <Button type="submit">Save password</Button>
+              <Button type="submit" loading={savingPassword} loadingText="Saving password…">
+                Save password
+              </Button>
             </div>
           </form>
         </Modal>

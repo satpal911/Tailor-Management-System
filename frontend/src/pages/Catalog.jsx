@@ -11,6 +11,7 @@ export default function Catalog() {
   const [services, setServices] = useState([]);
   const [busy, setBusy] = useState(true);
   const [mode, setMode] = useState('');
+  const [saving, setSaving] = useState(false);
   const { register, handleSubmit, reset } = useForm();
   async function load() {
     try {
@@ -30,6 +31,8 @@ export default function Catalog() {
     load();
   }, []);
   async function save(v) {
+    if (saving) return;
+    setSaving(true);
     try {
       if (mode === 'category') await api.post('/categories', v);
       else
@@ -44,6 +47,8 @@ export default function Catalog() {
       load();
     } catch (e) {
       toast(errorMessage(e), 'error');
+    } finally {
+      setSaving(false);
     }
   }
   return (
@@ -144,7 +149,13 @@ export default function Catalog() {
                 </label>
               </>
             )}
-            <Button type="submit">Save {mode}</Button>
+            <Button
+              type="submit"
+              loading={saving}
+              loadingText={`Saving ${mode}…`}
+            >
+              Save {mode}
+            </Button>
           </form>
         </Modal>
       )}

@@ -22,6 +22,9 @@ const fetchCsrfToken = async () => {
 };
 
 api.interceptors.request.use(async (config) => {
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    config.headers.delete('Content-Type');
+  }
   if (!['get', 'head', 'options'].includes((config.method || 'get').toLowerCase())) {
     const token = readCsrfCookie() || (await fetchCsrfToken());
     if (token) config.headers.set('X-CSRF-Token', token);

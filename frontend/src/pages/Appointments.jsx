@@ -17,6 +17,8 @@ export default function Appointments() {
   const [assignments, setAssignments] = useState({});
   const [busy, setBusy] = useState(true);
   const [modal, setModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [updatingId, setUpdatingId] = useState('');
   const { register, handleSubmit, reset } = useForm();
 
   async function load() {
@@ -52,6 +54,8 @@ export default function Appointments() {
   }, []);
 
   async function save(values) {
+    if (saving) return;
+    setSaving(true);
     try {
       await api.post('/appointments', {
         ...values,
@@ -63,9 +67,13 @@ export default function Appointments() {
       await load();
     } catch (error) {
       toast(errorMessage(error), 'error');
+    } finally {
+      setSaving(false);
     }
   }
   async function update(appointment, status) {
+    if (updatingId) return;
+    setUpdatingId(appointment._id);
     try {
       const tailor = user.role === ROLES.ADMIN ? assignments[appointment._id] : undefined;
       await api.patch(`/appointments/${appointment._id}`, {
@@ -76,6 +84,8 @@ export default function Appointments() {
       await load();
     } catch (error) {
       toast(errorMessage(error), 'error');
+    } finally {
+      setUpdatingId('');
     }
   }
 
@@ -164,18 +174,33 @@ export default function Appointments() {
                     </select>
                   )}
                   <Button
-                    disabled={admin && !assignments[appointment._id]}
+                    variant="success"
+                    disabled={(admin && !assignments[appointment._id]) || Boolean(updatingId)}
+                    loading={updatingId === appointment._id}
+                    loadingText="Approving…"
                     onClick={() => update(appointment, 'SCHEDULED')}
                   >
                     Approve
                   </Button>
-                  <Button variant="outline" onClick={() => update(appointment, 'REJECTED')}>
+                  <Button
+                    variant="danger"
+                    disabled={Boolean(updatingId)}
+                    loading={updatingId === appointment._id}
+                    loadingText="Updating…"
+                    onClick={() => update(appointment, 'REJECTED')}
+                  >
                     Not approve
                   </Button>
                 </div>
               )}
               {appointment.status === 'SCHEDULED' && !customer && (
-                <Button variant="outline" onClick={() => update(appointment, 'COMPLETED')}>
+                <Button
+                  variant="outline"
+                  disabled={Boolean(updatingId)}
+                  loading={updatingId === appointment._id}
+                  loadingText="Updating…"
+                  onClick={() => update(appointment, 'COMPLETED')}
+                >
                   Mark complete
                 </Button>
               )}
@@ -263,7 +288,11 @@ export default function Appointments() {
               Notes
               <textarea rows="2" maxLength="1000" {...register('notes')} />
             </label>
-            <Button type="submit">
+            <Button
+              type="submit"
+              loading={saving}
+              loadingText={customer ? 'Sending request…' : 'Scheduling…'}
+            >
               {customer ? 'Send appointment request' : 'Schedule appointment'}
             </Button>
           </form>

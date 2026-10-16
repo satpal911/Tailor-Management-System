@@ -99,8 +99,8 @@ export default function Settings() {
           </label>
         </div>
         <div className="settings-actions">
-          <Button disabled={saving} icon={Save}>
-            {saving ? 'Saving…' : 'Save settings'}
+          <Button loading={saving} loadingText="Saving settings…" icon={Save}>
+            Save settings
           </Button>
         </div>
       </form>

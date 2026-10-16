@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import api from '../services/api.js';
 import { errorMessage } from '../utils/constants.js';
-import { Button, PageHeader } from '../components/UI.jsx';
+import { Button, PageHeader, PasswordInput } from '../components/UI.jsx';
 
 export default function Profile() {
   const { user, refresh } = useAuth();
@@ -65,6 +65,7 @@ export default function Profile() {
                   minLength: { value: 2, message: 'Enter at least 2 characters' },
                   maxLength: { value: 120, message: 'Name must be 120 characters or fewer' },
                 })}
+                aria-invalid={Boolean(errors.name)}
               />
               {errors.name && <small className="field-error">{errors.name.message}</small>}
             </label>
@@ -81,6 +82,7 @@ export default function Profile() {
                     return !digits || (digits >= 7 && digits <= 15) || 'Enter a valid phone number';
                   },
                 })}
+                aria-invalid={Boolean(errors.phone)}
               />
               {errors.phone && <small className="field-error">{errors.phone.message}</small>}
             </label>
@@ -99,12 +101,12 @@ export default function Profile() {
                 </p>
                 <label className="field">
                   Current password
-                  <input
-                    type="password"
+                  <PasswordInput
                     autoComplete="current-password"
                     {...register('currentPassword', {
                       required: newPassword ? 'Current password is required' : false,
                     })}
+                    aria-invalid={Boolean(errors.currentPassword)}
                   />
                   {errors.currentPassword && (
                     <small className="field-error">{errors.currentPassword.message}</small>
@@ -112,8 +114,7 @@ export default function Profile() {
                 </label>
                 <label className="field">
                   New password
-                  <input
-                    type="password"
+                  <PasswordInput
                     minLength="8"
                     autoComplete="new-password"
                     {...register('password', {
@@ -123,6 +124,7 @@ export default function Profile() {
                         message: 'Password must be 128 characters or fewer',
                       },
                     })}
+                    aria-invalid={Boolean(errors.password)}
                   />
                   {errors.password && (
                     <small className="field-error">{errors.password.message}</small>
@@ -130,13 +132,13 @@ export default function Profile() {
                 </label>
                 <label className="field">
                   Confirm new password
-                  <input
-                    type="password"
+                  <PasswordInput
                     autoComplete="new-password"
                     {...register('confirmPassword', {
                       validate: (value) =>
                         !newPassword || value === newPassword || 'Passwords do not match',
                     })}
+                    aria-invalid={Boolean(errors.confirmPassword)}
                   />
                   {errors.confirmPassword && (
                     <small className="field-error">{errors.confirmPassword.message}</small>
@@ -145,7 +147,7 @@ export default function Profile() {
               </>
             )}
             <div className="actions">
-              <Button type="submit" disabled={busy || !isDirty}>
+              <Button type="submit" loading={busy} disabled={!isDirty} loadingText="Saving changes…">
                 {busy ? 'Saving…' : 'Save changes'} <Check size={14} />
               </Button>
             </div>

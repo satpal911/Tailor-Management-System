@@ -14,6 +14,7 @@ export default function Payments() {
   const [orders, setOrders] = useState([]);
   const [busy, setBusy] = useState(true);
   const [modal, setModal] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const { register, handleSubmit, reset } = useForm({ defaultValues: { method: 'CASH' } });
   async function load() {
@@ -50,6 +51,8 @@ export default function Payments() {
     setSearchParams({}, { replace: true });
   }, [orders, reset, searchParams, setSearchParams]);
   async function save(v) {
+    if (saving) return;
+    setSaving(true);
     try {
       await api.post('/payments', {
         order: v.order,
@@ -64,6 +67,8 @@ export default function Payments() {
       await load();
     } catch (e) {
       toast(errorMessage(e), 'error');
+    } finally {
+      setSaving(false);
     }
   }
   const amount = rows.reduce(
@@ -212,7 +217,9 @@ export default function Payments() {
               method.
             </p>
             <div className="actions">
-              <Button type="submit">Save payment</Button>
+              <Button type="submit" loading={saving} loadingText="Saving payment…">
+                Save payment
+              </Button>
             </div>
           </form>
         </Modal>

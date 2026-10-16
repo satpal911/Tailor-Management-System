@@ -27,6 +27,7 @@ export default function Payroll() {
   const [busy, setBusy] = useState(true);
   const [modal, setModal] = useState('');
   const [selected, setSelected] = useState(null);
+  const [saving, setSaving] = useState(false);
   const form = useForm({ defaultValues: blank });
   const paymentForm = useForm();
   const baseSalaryForm = useForm();
@@ -79,6 +80,8 @@ export default function Payroll() {
     setModal('salary');
   }
   async function save(values) {
+    if (saving) return;
+    setSaving(true);
     const payload = {
       ...values,
       month: Number(values.month),
@@ -100,9 +103,13 @@ export default function Payroll() {
       await load();
     } catch (error) {
       toast(errorMessage(error), 'error');
+    } finally {
+      setSaving(false);
     }
   }
   async function saveBaseSalary(values) {
+    if (saving) return;
+    setSaving(true);
     try {
       await api.patch('/salaries/base-salary', {
         baseSalary: Number(values.baseSalary),
@@ -114,6 +121,8 @@ export default function Payroll() {
       await load();
     } catch (error) {
       toast(errorMessage(error), 'error');
+    } finally {
+      setSaving(false);
     }
   }
   function openPayment(row) {
@@ -126,6 +135,8 @@ export default function Payroll() {
     setModal('payment');
   }
   async function pay(values) {
+    if (saving) return;
+    setSaving(true);
     try {
       await api.post(`/salaries/${selected._id}/payments`, {
         ...values,
@@ -136,10 +147,12 @@ export default function Payroll() {
       await load();
     } catch (error) {
       toast(errorMessage(error), 'error');
+    } finally {
+      setSaving(false);
     }
   }
 
-  const total = rows.reduce((sum, row) => sum + row.netSalary, 0);
+  const totalPaid = rows.reduce((sum, row) => sum + row.amountPaid, 0);
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
   const currentSalary = rows.find((row) => row.month === currentMonth && row.year === currentYear);
@@ -176,8 +189,8 @@ export default function Payroll() {
       <div className="metric-grid">
         <Metric
           icon={Wallet}
-          label={admin ? 'Payroll total' : 'Current month net salary'}
-          value={money(admin ? total : currentSalary?.netSalary || 0)}
+          label={admin ? 'Salary paid' : 'Current month net salary'}
+          value={money(admin ? totalPaid : currentSalary?.netSalary || 0)}
           note={
             admin
               ? `${rows.length} salary records`
@@ -397,7 +410,13 @@ export default function Payroll() {
               Notes
               <textarea rows="2" maxLength="2000" {...form.register('notes')} />
             </label>
-            <Button type="submit">{selected ? 'Save changes' : 'Create salary'}</Button>
+            <Button
+              type="submit"
+              loading={saving}
+              loadingText={selected ? 'Saving changes…' : 'Creating salary…'}
+            >
+              {selected ? 'Save changes' : 'Create salary'}
+            </Button>
           </form>
         </Modal>
       )}
@@ -438,7 +457,9 @@ export default function Payroll() {
               Reference
               <input maxLength="120" {...paymentForm.register('reference')} />
             </label>
-            <Button type="submit">Save payment</Button>
+            <Button type="submit" loading={saving} loadingText="Saving payment…">
+              Save payment
+            </Button>
           </form>
         </Modal>
       )}
@@ -484,7 +505,9 @@ export default function Payroll() {
                 })}
               />
             </label>
-            <Button type="submit">Save base salary</Button>
+            <Button type="submit" loading={saving} loadingText="Saving base salary…">
+              Save base salary
+            </Button>
           </form>
         </Modal>
       )}

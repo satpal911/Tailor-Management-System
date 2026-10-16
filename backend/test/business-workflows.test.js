@@ -47,9 +47,9 @@ function localMongoUri(uri) {
 before(async () => {
   process.env.NODE_ENV = 'test';
   process.env.DEFAULT_PHONE_COUNTRY_CODE = '91';
-  process.env.CLOUDINARY_CLOUD_NAME = '';
-  process.env.CLOUDINARY_API_KEY = '';
-  process.env.CLOUDINARY_API_SECRET = '';
+  process.env.CLOUDINARY_CLOUD_NAME = 'test-only-cloud';
+  process.env.CLOUDINARY_API_KEY = 'test-only-key';
+  process.env.CLOUDINARY_API_SECRET = 'test-only-secret';
   const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
   if (!mongoUri)
     throw new Error(
@@ -951,6 +951,19 @@ test(
         },
       );
 
+      await t.test('report filters match tailor and customer ObjectIds', async () => {
+        const report = await call(
+          `/dashboard/reports?tailor=${tailorProfile._id}&customer=${customerProfile._id}`,
+          { token: adminToken },
+        );
+        assert.equal(report.response.status, 200, JSON.stringify(report.payload));
+        assert.equal(report.payload.data.orders, 1);
+        assert.equal(report.payload.data.customers, 1);
+        assert.deepEqual(report.payload.data.stages, [
+          { _id: 'CUTTING', count: 1, finalAmount: 3600, remainingAmount: 200 },
+        ]);
+      });
+
       await t.test('appointment listing, ownership, and status permissions', async () => {
         const created = await call('/appointments', {
           method: 'POST',
@@ -1315,6 +1328,7 @@ test(
             }),
             { statusCode: 400 },
           );
+          await assert.rejects(uploadImages([file], { enabled: false }), { statusCode: 503 });
           let destroyed = 0;
           let calls = 0;
           const failingUploader = {
@@ -1344,34 +1358,123 @@ test(
           assert.equal(destroyed, 1);
           const invalid = new FormData();
           invalid.append('images', new Blob(['bad'], { type: 'text/plain' }), 'bad.txt');
+          const invalidResponse = await call('/orders', {
+            method: 'POST',
+            token: customerToken,
+            form: invalid,
+          });
           assert.equal(
-            (await call('/orders', { method: 'POST', token: customerToken, form: invalid }))
-              .response.status,
+            invalidResponse.response.status,
             400,
           );
+          assert.equal(invalidResponse.payload.message, 'Please upload a JPG, PNG, or WEBP image.');
           const tooLarge = new FormData();
           tooLarge.append(
             'images',
             new Blob([new Uint8Array(5 * 1024 * 1024 + 1)], { type: 'image/png' }),
             'large.png',
           );
+          const tooLargeResponse = await call('/orders', {
+            method: 'POST',
+            token: customerToken,
+            form: tooLarge,
+          });
+          assert.equal(tooLargeResponse.response.status, 413);
           assert.equal(
-            (await call('/orders', { method: 'POST', token: customerToken, form: tooLarge }))
-              .response.status,
-            413,
+            tooLargeResponse.payload.message,
+            'Image is too large. Please upload a smaller image.',
           );
-          const unconfigured = new FormData();
-          unconfigured.append('dueDate', new Date(Date.now() + 7 * 86400000).toISOString());
-          unconfigured.append(
-            'items',
-            JSON.stringify([{ service: String(service._id), quantity: 1 }]),
-          );
-          unconfigured.append('images', new Blob([png], { type: 'image/png' }), 'image.png');
-          assert.equal(
-            (await call('/orders', { method: 'POST', token: customerToken, form: unconfigured }))
-              .response.status,
-            503,
-          );
+          const { default: cloudinary } = await import('../src/config/cloudinary.js');
+          const originalUploadStream = cloudinary.uploader.upload_stream;
+          const originalDestroy = cloudinary.uploader.destroy;
+          const deletedOrderImages = [];
+          let uploadedOrderImages = 0;
+          cloudinary.uploader.upload_stream = (_options, callback) => ({
+            end: (buffer) => {
+              assert.ok(buffer.equals(png));
+              uploadedOrderImages += 1;
+              callback(null, {
+                secure_url: `https://cdn.example.test/order-${uploadedOrderImages}.png`,
+                public_id: `qa/order-image-${uploadedOrderImages}`,
+              });
+            },
+          });
+          cloudinary.uploader.destroy = async (publicId) => {
+            deletedOrderImages.push(publicId);
+            return { result: 'ok' };
+          };
+          const orderForm = (...images) => {
+            const form = new FormData();
+            form.append('dueDate', new Date(Date.now() + 7 * 86400000).toISOString());
+            form.append(
+              'items',
+              JSON.stringify([{ service: String(service._id), quantity: 1 }]),
+            );
+            images.forEach((image, index) =>
+              form.append(
+                'images',
+                new Blob([image], { type: 'image/png' }),
+                `image-${index + 1}.png`,
+              ),
+            );
+            return form;
+          };
+          try {
+            const noImages = await call('/orders', {
+              method: 'POST',
+              token: customerToken,
+              form: orderForm(),
+            });
+            assert.equal(noImages.response.status, 201, JSON.stringify(noImages.payload));
+            assert.deepEqual(noImages.payload.data.designImages, []);
+
+            const oneImage = await call('/orders', {
+              method: 'POST',
+              token: customerToken,
+              form: orderForm(png),
+            });
+            assert.equal(oneImage.response.status, 201, JSON.stringify(oneImage.payload));
+            assert.equal(oneImage.payload.data.designImages.length, 1);
+            assert.equal(
+              oneImage.payload.data.designImages[0].publicId,
+              'qa/order-image-1',
+            );
+
+            const multipleImages = await call('/orders', {
+              method: 'POST',
+              token: customerToken,
+              form: orderForm(png, png),
+            });
+            assert.equal(
+              multipleImages.response.status,
+              201,
+              JSON.stringify(multipleImages.payload),
+            );
+            assert.equal(multipleImages.payload.data.designImages.length, 2);
+            assert.deepEqual(
+              multipleImages.payload.data.designImages.map((image) => image.publicId),
+              ['qa/order-image-2', 'qa/order-image-3'],
+            );
+            assert.equal(uploadedOrderImages, 3);
+
+            const wrongField = new FormData();
+            wrongField.append('image', new Blob([png], { type: 'image/png' }), 'image.png');
+            const wrongFieldResult = await call('/orders', {
+              method: 'POST',
+              token: customerToken,
+              form: wrongField,
+            });
+            assert.equal(wrongFieldResult.response.status, 400);
+            assert.equal(
+              wrongFieldResult.payload.message,
+              'Invalid image upload field. Use the images field.',
+            );
+
+          } finally {
+            cloudinary.uploader.upload_stream = originalUploadStream;
+            cloudinary.uploader.destroy = originalDestroy;
+          }
+          assert.deepEqual(deletedOrderImages, []);
           const allowed = await call('/health', {
             method: 'OPTIONS',
             headers: { origin: 'http://localhost:5174', 'access-control-request-method': 'GET' },

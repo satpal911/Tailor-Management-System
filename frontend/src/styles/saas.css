@@ -1,6 +1,6 @@
 /* SaaS polish layer: keeps the existing page styles and business flows intact. */
 :root {
-  font-size: 14px;
+  font-size: 16px;
   --ink: #29352e;
   --muted: #727d73;
   --line: #e5e9e2;
@@ -1658,11 +1658,6 @@ body,
 .tracking-notes .note-form button {
   min-width: 84px;
 }
-.tracking-notes .note-form .button-primary {
-  background: var(--navy);
-  border-color: var(--navy);
-  color: #fff;
-}
 .tracking-payment .payment-history-button {
   background: var(--surface-soft);
   border-color: var(--line);
@@ -2569,11 +2564,6 @@ body,
   color: #101827;
   border-color: #b89556;
 }
-:root[data-theme='dark'] .tracking-notes .note-form .button-primary {
-  background: #b89556;
-  border-color: #b89556;
-  color: #101827;
-}
 :root[data-theme='dark'] .tracking-payment .payment-history-button {
   background: var(--surface-soft);
   border-color: var(--line);
@@ -2868,7 +2858,7 @@ body,
 }
 :root[data-theme='dark'] .role-card-icon {
   background: #1e293b;
-  color: #d9bd83;
+  color: #9aa6b7;
 }
 :root[data-theme='dark'] input::placeholder,
 :root[data-theme='dark'] textarea::placeholder {

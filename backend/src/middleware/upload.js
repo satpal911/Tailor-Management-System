@@ -13,7 +13,7 @@ export const imageUpload = multer({
   fileFilter(_req, file, cb) {
     if (!allowed.has(file.mimetype))
       return cb(
-        Object.assign(new Error('Only JPG, PNG, and WEBP images are allowed'), { statusCode: 400 }),
+        Object.assign(new Error('Please upload a JPG, PNG, or WEBP image.'), { statusCode: 400 }),
       );
     cb(null, true);
   },

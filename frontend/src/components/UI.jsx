@@ -1,6 +1,33 @@
 import { Link } from 'react-router-dom';
-import { Plus, Search } from 'lucide-react';
-import { useEffect, useId, useRef } from 'react';
+import { Eye, EyeOff, LoaderCircle, Plus, Search } from 'lucide-react';
+import { forwardRef, useEffect, useId, useRef, useState } from 'react';
+
+export const PasswordInput = forwardRef(function PasswordInput(
+  { className = '', ...props },
+  ref,
+) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <span className="password-input">
+      <input
+        {...props}
+        ref={ref}
+        type={visible ? 'text' : 'password'}
+        className={className}
+      />
+      <button
+        type="button"
+        className="password-input-toggle"
+        aria-label={visible ? 'Hide password' : 'Show password'}
+        aria-pressed={visible}
+        onClick={() => setVisible((current) => !current)}
+      >
+        {visible ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+      </button>
+    </span>
+  );
+});
+
 export function Button({
   children,
   to,
@@ -9,19 +36,32 @@ export function Button({
   variant = 'primary',
   icon: Icon,
   disabled = false,
+  loading = false,
+  loadingText,
   className = '',
 }) {
   const C = to ? Link : 'button';
+  const variantClass = {
+    primary: 'button-primary',
+    outline: 'button-outline',
+    success: 'button-success',
+    danger: 'button-danger',
+  }[variant] || 'button-primary';
   return (
     <C
       to={to}
       type={to ? undefined : type}
       onClick={onClick}
-      disabled={disabled}
-      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold transition duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gold)] disabled:pointer-events-none disabled:opacity-60 ${variant === 'primary' ? 'border-transparent bg-[var(--navy)] text-[#fffefa] shadow-sm hover:brightness-110 dark:text-[#17212a]' : 'border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] hover:bg-[var(--surface-soft)]'} ${className}`}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      className={`button inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold transition duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gold)] disabled:pointer-events-none disabled:opacity-60 ${variantClass} ${className}`}
     >
-      {Icon ? <Icon size={15} /> : null}
-      {children}
+      {loading ? (
+        <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />
+      ) : Icon ? (
+        <Icon size={15} aria-hidden="true" />
+      ) : null}
+      {loading ? loadingText || children : children}
     </C>
   );
 }
@@ -189,14 +229,14 @@ export function Modal({ title, children, onClose }) {
   }, [onClose]);
   return (
     <div
-      className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/60 p-4 backdrop-blur-sm"
+      className="modal-backdrop fixed inset-0 z-[60] grid place-items-center bg-slate-950/60 p-4 backdrop-blur-sm"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
       <section
         ref={modalRef}
-        className="max-h-[90vh] w-full max-w-xl overflow-auto rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-6 text-[var(--ink)] shadow-2xl"
+        className="modal max-h-[90vh] w-full max-w-xl overflow-auto rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-6 text-[var(--ink)] shadow-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

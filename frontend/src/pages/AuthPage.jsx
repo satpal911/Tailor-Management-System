@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Scissors } from 'lucide-react';
+import { ArrowLeft, ArrowRight, LoaderCircle, Scissors } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { errorMessage } from '../utils/constants.js';
 import ThemeToggle from '../components/ThemeToggle.jsx';
 import { useShopName } from '../context/ShopContext.jsx';
+import { PasswordInput } from '../components/UI.jsx';
 
 export default function AuthPage({ mode = 'customer' }) {
   const { user, loginAdmin, loginTailor, loginCustomer, registerCustomer, registerTailor } =
@@ -176,6 +177,7 @@ export default function AuthPage({ mode = 'customer' }) {
                   autoComplete="username"
                   className="min-h-12 w-full rounded-lg border border-[var(--line)] bg-[var(--paper)] px-3.5 text-sm text-[var(--ink)] outline-none focus:border-[var(--sage)] focus:ring-4 focus:ring-emerald-900/10"
                   {...register('email', { required: 'Email is required' })}
+                  aria-invalid={Boolean(errors.email)}
                 />
                 {errors.email && (
                   <small className="text-xs font-medium text-rose-700 dark:text-rose-300">
@@ -193,6 +195,7 @@ export default function AuthPage({ mode = 'customer' }) {
                   placeholder="+91 98765 43210"
                   className="min-h-12 w-full rounded-lg border border-[var(--line)] bg-[var(--paper)] px-3.5 text-sm text-[var(--ink)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--sage)] focus:ring-4 focus:ring-emerald-900/10"
                   {...register('phone', phoneRule)}
+                  aria-invalid={Boolean(errors.phone)}
                 />
                 {errors.phone && (
                   <small className="text-xs font-medium text-rose-700 dark:text-rose-300">
@@ -204,8 +207,7 @@ export default function AuthPage({ mode = 'customer' }) {
             {(isCustomer || isTailorRegistration) && (
               <label className="grid gap-2 text-sm font-medium text-[var(--ink)]">
                 Password
-                <input
-                  type="password"
+                <PasswordInput
                   className="min-h-12 w-full rounded-lg border border-[var(--line)] bg-[var(--paper)] px-3.5 text-sm text-[var(--ink)] outline-none focus:border-[var(--sage)] focus:ring-4 focus:ring-emerald-900/10"
                   autoComplete={
                     isCustomerRegistration || isTailorRegistration
@@ -213,6 +215,7 @@ export default function AuthPage({ mode = 'customer' }) {
                       : 'current-password'
                   }
                   {...register('password', passwordRule)}
+                  aria-invalid={Boolean(errors.password)}
                 />
                 {errors.password && (
                   <small className="text-xs font-medium text-rose-700 dark:text-rose-300">
@@ -266,11 +269,11 @@ export default function AuthPage({ mode = 'customer' }) {
             {isAdmin && (
               <label className="grid gap-2 text-sm font-medium text-[var(--ink)]">
                 Password
-                <input
-                  type="password"
+                <PasswordInput
                   className="min-h-12 w-full rounded-lg border border-[var(--line)] bg-[var(--paper)] px-3.5 text-sm text-[var(--ink)] outline-none focus:border-[var(--sage)] focus:ring-4 focus:ring-emerald-900/10"
                   autoComplete="current-password"
                   {...register('password', { required: 'Password is required' })}
+                  aria-invalid={Boolean(errors.password)}
                 />
                 {errors.password && (
                   <small className="text-xs font-medium text-rose-700 dark:text-rose-300">
@@ -282,11 +285,11 @@ export default function AuthPage({ mode = 'customer' }) {
             {!isCustomer && !isAdmin && !isTailorRegistration && (
               <label className="grid gap-2 text-sm font-medium text-[var(--ink)]">
                 Password
-                <input
-                  type="password"
+                <PasswordInput
                   className="min-h-12 w-full rounded-lg border border-[var(--line)] bg-[var(--paper)] px-3.5 text-sm text-[var(--ink)] outline-none focus:border-[var(--sage)] focus:ring-4 focus:ring-emerald-900/10"
                   autoComplete="current-password"
                   {...register('password', passwordRule)}
+                  aria-invalid={Boolean(errors.password)}
                 />
                 {errors.password && (
                   <small className="text-xs font-medium text-rose-700 dark:text-rose-300">
@@ -297,10 +300,13 @@ export default function AuthPage({ mode = 'customer' }) {
             )}
             <button
               disabled={busy}
-              className="flex min-h-12 w-full items-center justify-between rounded-lg bg-[var(--navy)] px-4 text-sm font-semibold text-[#fffefa] shadow-sm transition hover:-translate-y-0.5 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gold)] disabled:cursor-wait disabled:opacity-60 dark:text-slate-900"
+              className="button button-primary flex min-h-12 w-full items-center justify-between px-4 text-sm font-semibold shadow-sm hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gold)] disabled:cursor-wait disabled:opacity-60"
             >
-              {busy
-                ? 'Please wait…'
+              {busy ? (
+                <>
+                  Please wait… <LoaderCircle size={16} className="animate-spin" />
+                </>
+              )
                 : isCustomerRegistration
                   ? 'Create customer account'
                   : isTailorRegistration

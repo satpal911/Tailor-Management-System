@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { ArrowLeft, ArrowRight, Check, Filter, Plus } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Filter, LoaderCircle, Plus, X } from 'lucide-react';
 import api from '../services/api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
@@ -17,6 +17,8 @@ import {
 } from '../components/UI.jsx';
 
 const steps = ['Order details', 'Design references', 'Review & submit'];
+const acceptedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const maxImageSize = 5 * 1024 * 1024;
 
 export default function Orders({ create = false, assigned = false }) {
   const { user } = useAuth();
@@ -31,6 +33,7 @@ export default function Orders({ create = false, assigned = false }) {
   const [services, setServices] = useState([]);
   const [uploads, setUploads] = useState([]);
   const [previews, setPreviews] = useState([]);
+  const [uploadError, setUploadError] = useState('');
   const [submitBusy, setSubmitBusy] = useState(false);
   const [step, setStep] = useState(0);
   const {
@@ -80,6 +83,7 @@ export default function Orders({ create = false, assigned = false }) {
   }, [uploads]);
 
   async function save(values) {
+    if (submitBusy) return;
     setSubmitBusy(true);
     try {
       const form = new FormData();
@@ -95,17 +99,45 @@ export default function Orders({ create = false, assigned = false }) {
           };
       form.append('items', JSON.stringify([item]));
       uploads.forEach((file) => form.append('images', file));
-      const response = await api.post('/orders', form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const response = await api.post('/orders', form);
       toast('Order created');
       reset();
+      setUploads([]);
       location.assign(`/app/${customerMode ? 'my-orders' : 'orders'}/${response.data.data._id}`);
     } catch (error) {
       toast(errorMessage(error), 'error');
     } finally {
       setSubmitBusy(false);
     }
+  }
+
+  function selectImages(event) {
+    const selected = Array.from(event.target.files || []);
+    event.target.value = '';
+    const invalidType = selected.some((file) => !acceptedImageTypes.has(file.type));
+    const oversized = selected.some((file) => file.size > maxImageSize);
+    const invalidMessage = invalidType
+      ? 'Please upload JPG, PNG, or WEBP images.'
+      : oversized
+        ? 'Each image must be 5 MB or smaller.'
+        : '';
+    const valid = selected.filter(
+      (file) => acceptedImageTypes.has(file.type) && file.size <= maxImageSize,
+    );
+    const unique = valid.filter(
+      (file) =>
+        !uploads.some(
+          (existing) =>
+            existing.name === file.name &&
+            existing.lastModified === file.lastModified &&
+            existing.size === file.size,
+        ),
+    );
+    const exceedsLimit = uploads.length + unique.length > 5;
+    const message = invalidMessage || (exceedsLimit ? 'You can attach up to 5 images.' : '');
+    setUploadError(message);
+    if (message) toast(message, 'error');
+    setUploads([...uploads, ...unique].slice(0, 5));
   }
 
   async function nextStep() {
@@ -160,7 +192,10 @@ export default function Orders({ create = false, assigned = false }) {
                   {!customerMode && (
                     <label className="field">
                       Customer
-                      <select {...register('customer', { required: 'Choose a customer' })}>
+                      <select
+                        aria-invalid={Boolean(errors.customer)}
+                        {...register('customer', { required: 'Choose a customer' })}
+                      >
                         <option value="">Select customer…</option>
                         {customers.map((customer) => (
                           <option value={customer._id} key={customer._id}>
@@ -176,6 +211,7 @@ export default function Orders({ create = false, assigned = false }) {
                   <label className="field">
                     Service
                     <select
+                      aria-invalid={Boolean(errors.service)}
                       {...register('service', {
                         required: customerMode ? 'Choose a service' : false,
                       })}
@@ -199,6 +235,7 @@ export default function Orders({ create = false, assigned = false }) {
                         Garment / service description
                         <input
                           placeholder="e.g. Silk blouse, boat neckline"
+                          aria-invalid={Boolean(errors.description)}
                           {...register('description', { required: 'Add a short description' })}
                         />
                         {errors.description && (
@@ -212,6 +249,7 @@ export default function Orders({ create = false, assigned = false }) {
                         type="number"
                         min="1"
                         defaultValue="1"
+                        aria-invalid={Boolean(errors.quantity)}
                         {...register('quantity', {
                           valueAsNumber: true,
                           min: { value: 1, message: 'Quantity must be at least one' },
@@ -231,6 +269,7 @@ export default function Orders({ create = false, assigned = false }) {
                           type="number"
                           min="0"
                           step="1"
+                          aria-invalid={Boolean(errors.unitPrice)}
                           {...register('unitPrice', {
                             required: 'Price is required',
                             valueAsNumber: true,
@@ -247,6 +286,7 @@ export default function Orders({ create = false, assigned = false }) {
                       <input
                         type="date"
                         min={new Date().toISOString().slice(0, 10)}
+                        aria-invalid={Boolean(errors.dueDate)}
                         {...register('dueDate', { required: 'Choose a due date' })}
                       />
                       {errors.dueDate && (
@@ -286,24 +326,40 @@ export default function Orders({ create = false, assigned = false }) {
                   <label className="upload-drop">
                     <input
                       type="file"
+                      name="images"
                       accept="image/jpeg,image/png,image/webp"
                       multiple
-                      onChange={(event) =>
-                        setUploads(Array.from(event.target.files || []).slice(0, 5))
-                      }
+                      aria-describedby="design-image-help"
+                      onChange={selectImages}
                     />
                     <span className="upload-icon">
                       <Plus size={19} />
                     </span>
                     <b>Choose reference images</b>
-                    <small>JPG, PNG or WEBP · up to 5 MB each · 5 images maximum</small>
+                    <small id="design-image-help">
+                      JPG, PNG or WEBP · up to 5 MB each · 5 images maximum
+                    </small>
                   </label>
+                  {uploadError && (
+                    <p className="upload-error" role="alert">
+                      {uploadError}
+                    </p>
+                  )}
                   {uploads.length > 0 && (
                     <div className="upload-previews">
                       {uploads.map((file, index) => (
                         <div key={`${file.name}-${file.lastModified}`}>
                           <img src={previews[index]} alt={`Preview of ${file.name}`} />
                           <span>{file.name}</span>
+                          <button
+                            type="button"
+                            aria-label={`Remove ${file.name}`}
+                            onClick={() =>
+                              setUploads((current) => current.filter((_, i) => i !== index))
+                            }
+                          >
+                            <X size={15} aria-hidden="true" />
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -370,8 +426,21 @@ export default function Orders({ create = false, assigned = false }) {
                     Continue <ArrowRight size={15} />
                   </Button>
                 ) : (
-                  <button disabled={submitBusy} className="button button-primary">
-                    {submitBusy ? 'Sending request…' : 'Create order'} <ArrowRight size={15} />
+                  <button
+                    type="submit"
+                    disabled={submitBusy}
+                    className="button button-primary"
+                  >
+                    {submitBusy ? (
+                      <>
+                        <LoaderCircle size={16} className="animate-spin" />
+                        Creating order…
+                      </>
+                    ) : (
+                      <>
+                        Create order <ArrowRight size={15} />
+                      </>
+                    )}
                   </button>
                 )}
               </div>

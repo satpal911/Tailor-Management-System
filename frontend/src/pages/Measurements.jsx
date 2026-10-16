@@ -26,6 +26,7 @@ export default function Measurements() {
   const [customers, setCustomers] = useState([]);
   const [busy, setBusy] = useState(true);
   const [modal, setModal] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const { register, handleSubmit, reset } = useForm();
   async function load() {
@@ -46,6 +47,8 @@ export default function Measurements() {
     load();
   }, []);
   async function save(v) {
+    if (saving) return;
+    setSaving(true);
     const values = {};
     for (const k of base) if (v[k]) values[k] = Number(v[k]);
     const customMeasurements =
@@ -66,6 +69,8 @@ export default function Measurements() {
       load();
     } catch (e) {
       toast(errorMessage(e), 'error');
+    } finally {
+      setSaving(false);
     }
   }
   const filtered = rows.filter((m) =>
@@ -232,7 +237,9 @@ export default function Measurements() {
               <textarea rows="2" {...register('notes')} />
             </label>
             <div className="actions">
-              <Button type="submit">Save profile</Button>
+              <Button type="submit" loading={saving} loadingText="Saving profile…">
+                Save profile
+              </Button>
             </div>
           </form>
         </Modal>
