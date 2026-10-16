@@ -16,8 +16,8 @@ const readCsrfCookie = () => {
   return value ? decodeURIComponent(value) : null;
 };
 
-const fetchCsrfToken = async () => {
-  const response = await api.get('/auth/csrf');
+const fetchCsrfToken = async (path = '/auth/csrf') => {
+  const response = await api.get(path);
   return response.data?.data?.csrfToken || readCsrfCookie();
 };
 
@@ -25,8 +25,15 @@ api.interceptors.request.use(async (config) => {
   if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
     config.headers.delete('Content-Type');
   }
-  if (!['get', 'head', 'options'].includes((config.method || 'get').toLowerCase())) {
-    const token = readCsrfCookie() || (await fetchCsrfToken());
+  const isSafeMethod = ['get', 'head', 'options'].includes(
+    (config.method || 'get').toLowerCase(),
+  );
+  const isPublicTokenFlow = config.url?.startsWith('/public/');
+  if (!isSafeMethod && !isPublicTokenFlow) {
+    const csrfPath = config.url?.startsWith('/platform/')
+      ? '/platform/auth/csrf'
+      : '/auth/csrf';
+    const token = readCsrfCookie() || (await fetchCsrfToken(csrfPath));
     if (token) config.headers.set('X-CSRF-Token', token);
   }
   return config;
@@ -42,7 +49,10 @@ api.interceptors.response.use(
     if (!config || !isCsrfFailure || config.__csrfRetried) throw error;
 
     config.__csrfRetried = true;
-    const token = await fetchCsrfToken();
+    const csrfPath = config.url?.startsWith('/platform/')
+      ? '/platform/auth/csrf'
+      : '/auth/csrf';
+    const token = await fetchCsrfToken(csrfPath);
     if (!token) throw error;
     config.headers.set('X-CSRF-Token', token);
     return api.request(config);

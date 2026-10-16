@@ -3,8 +3,11 @@ import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import http from 'node:http';
 import mongoose from 'mongoose';
 import User from '../src/models/User.js';
+import PlatformAdmin from '../src/models/PlatformAdmin.js';
+import ShopApplication from '../src/models/ShopApplication.js';
 import Customer from '../src/models/Customer.js';
 import Tailor from '../src/models/Tailor.js';
 import Category from '../src/models/Category.js';
@@ -15,6 +18,7 @@ import Payment from '../src/models/Payment.js';
 import Notification from '../src/models/Notification.js';
 import Salary from '../src/models/Salary.js';
 import Shop from '../src/models/Shop.js';
+import ShopSettings from '../src/models/ShopSettings.js';
 import { runWithTenant } from '../src/services/tenantContext.js';
 import { normalizePhone } from '../src/utils/phone.js';
 
@@ -60,6 +64,7 @@ before(async () => {
     serverSelectionTimeoutMS: 5000,
   });
   await Shop.init();
+  await Promise.all([PlatformAdmin.init(), ShopApplication.init()]);
   mainShop = await Shop.create({ name: 'QA Main Shop', slug: 'main', domains: ['127.0.0.1'] });
   await Promise.all([
     User.init(),
@@ -87,6 +92,11 @@ before(async () => {
       email: 'qa-admin@example.test',
       password: hash,
       role: 'ADMIN',
+    });
+    await PlatformAdmin.create({
+      name: 'QA Platform Operator',
+      email: 'platform-operator@example.test',
+      password: await bcrypt.hash('QA-Platform-Operator-Password-2026', 4),
     });
     tailorUser = await User.create({
       name: 'QA Tailor',
@@ -136,7 +146,16 @@ after(async () => {
 
 async function call(
   path,
-  { method = 'GET', token, body, form, csrf = true, headers: extraHeaders = {}, ip } = {},
+  {
+    method = 'GET',
+    token,
+    platformToken,
+    body,
+    form,
+    csrf = true,
+    headers: extraHeaders = {},
+    ip,
+  } = {},
 ) {
   const headers = new Headers(extraHeaders);
   if (ip) headers.set('x-forwarded-for', ip);
@@ -145,19 +164,61 @@ async function call(
     if (csrf && !['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase()))
       headers.set('x-csrf-token', 'qa-test-csrf');
   }
+  if (platformToken) {
+    headers.set('cookie', `platform_token=${platformToken}; csrf_token=qa-test-csrf`);
+    if (csrf && !['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase()))
+      headers.set('x-csrf-token', 'qa-test-csrf');
+  }
   if (body !== undefined) headers.set('content-type', 'application/json');
-  const response = await fetch(`${baseUrl}${path}`, {
-    method,
-    headers,
-    body: form || (body === undefined ? undefined : JSON.stringify(body)),
-  });
-  const setCookie = response.headers.get('set-cookie') || '';
+  let response;
+  let responseBody;
+  let setCookie;
+  if (headers.has('host')) {
+    const url = new URL(`${baseUrl}${path}`);
+    const result = await new Promise((resolve, reject) => {
+      const request = http.request(
+        {
+          hostname: url.hostname,
+          port: url.port,
+          path: `${url.pathname}${url.search}`,
+          method,
+          headers: Object.fromEntries(headers.entries()),
+        },
+        (incoming) => {
+          const chunks = [];
+          incoming.on('data', (chunk) => chunks.push(chunk));
+          incoming.on('end', () =>
+            resolve({
+              status: incoming.statusCode,
+              body: Buffer.concat(chunks).toString(),
+              setCookie: (incoming.headers['set-cookie'] || []).join(', '),
+            }),
+          );
+        },
+      );
+      request.on('error', reject);
+      request.end(form || (body === undefined ? undefined : JSON.stringify(body)));
+    });
+    response = { status: result.status };
+    responseBody = result.body;
+    setCookie = result.setCookie;
+  } else {
+    response = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers,
+      body: form || (body === undefined ? undefined : JSON.stringify(body)),
+    });
+    responseBody = await response.text();
+    setCookie = response.headers.get('set-cookie') || '';
+  }
   const tokenMatch = setCookie.match(/(?:^|, )tailor_token=([^;,]*)/);
-  const payload = await response.json().catch(() => ({}));
+  const platformTokenMatch = setCookie.match(/(?:^|, )platform_token=([^;,]*)/);
+  const payload = JSON.parse(responseBody || '{}');
   return {
     response,
     payload,
     token: tokenMatch ? decodeURIComponent(tokenMatch[1]) : undefined,
+    platformToken: platformTokenMatch ? decodeURIComponent(platformTokenMatch[1]) : undefined,
     setCookie,
   };
 }
@@ -265,6 +326,266 @@ test(
         },
       );
 
+      await t.test(
+        'public shop applications require platform approval and use one-time owner activation',
+        async () => {
+          const submission = {
+            ownerName: 'Application Owner',
+            shopName: 'Blue Thimble Atelier',
+            email: 'blue-owner@example.test',
+            phone: '+91 98765 43211',
+            city: 'Jaipur',
+            businessDetails: 'Small tailoring studio',
+            plan: 'GROWTH',
+            customDomain: true,
+            website: '',
+          };
+          const unauthenticatedList = await call('/platform/applications');
+          assert.equal(unauthenticatedList.response.status, 401);
+
+          const invalid = await call('/public/applications', {
+            method: 'POST',
+            body: { ...submission, phone: '123', plan: 'UNLIMITED' },
+            ip: '198.51.100.71',
+          });
+          assert.equal(invalid.response.status, 400);
+          assert.ok(invalid.payload.errors.length >= 1);
+
+          const spam = await call('/public/applications', {
+            method: 'POST',
+            body: { ...submission, website: 'https://spam.example' },
+            ip: '198.51.100.72',
+          });
+          assert.equal(spam.response.status, 400);
+
+          const created = await call('/public/applications', {
+            method: 'POST',
+            body: submission,
+            ip: '198.51.100.73',
+          });
+          assert.equal(created.response.status, 201, JSON.stringify(created.payload));
+          const applicationId = created.payload.data.id;
+          assert.ok(applicationId);
+          const duplicate = await call('/public/applications', {
+            method: 'POST',
+            body: submission,
+            ip: '198.51.100.74',
+          });
+          assert.equal(duplicate.response.status, 409);
+          assert.equal(await Shop.countDocuments({ name: submission.shopName }), 0);
+
+          const operatorLogin = await call('/platform/auth/login', {
+            method: 'POST',
+            body: {
+              email: 'platform-operator@example.test',
+              password: 'QA-Platform-Operator-Password-2026',
+            },
+            ip: '198.51.100.75',
+          });
+          assert.equal(operatorLogin.response.status, 200, JSON.stringify(operatorLogin.payload));
+          assert.ok(operatorLogin.platformToken);
+          assert.equal(JSON.stringify(operatorLogin.payload).includes(operatorLogin.platformToken), false);
+          const listed = await call('/platform/applications?q=Blue+Thimble', {
+            platformToken: operatorLogin.platformToken,
+          });
+          assert.equal(listed.response.status, 200);
+          assert.equal(listed.payload.data.length, 1);
+          assert.equal(listed.payload.data[0]._id, applicationId);
+          assert.equal('activationTokenHash' in listed.payload.data[0], false);
+
+          const updated = await call(`/platform/applications/${applicationId}`, {
+            method: 'PATCH',
+            platformToken: operatorLogin.platformToken,
+            body: {
+              status: 'DEMO_SCHEDULED',
+              paymentStatus: 'VERIFIED',
+              internalNotes: 'Demo scheduled; payment confirmed manually.',
+            },
+          });
+          assert.equal(updated.response.status, 200, JSON.stringify(updated.payload));
+          assert.equal(updated.payload.data.status, 'DEMO_SCHEDULED');
+          assert.equal(updated.payload.data.paymentStatus, 'VERIFIED');
+
+          const application = await ShopApplication.findById(applicationId).select(
+            '+activeSubmissionKey',
+          );
+          assert.ok(application.activeSubmissionKey);
+          const approved = await call(`/platform/applications/${applicationId}/approve`, {
+            method: 'POST',
+            platformToken: operatorLogin.platformToken,
+          });
+          assert.equal(approved.response.status, 200, JSON.stringify(approved.payload));
+          assert.ok(approved.payload.data.activationUrl);
+          const activationUrl = new URL(approved.payload.data.activationUrl);
+          assert.equal(activationUrl.hostname.endsWith('.localhost'), true);
+          assert.equal(approved.payload.data.application.provisioningStatus, 'COMPLETE');
+          const provisionedShop = await Shop.findById(approved.payload.data.application.shop);
+          assert.equal(provisionedShop.provisionedFromApplication.toString(), applicationId);
+          assert.equal(provisionedShop.domains[0], approved.payload.data.application.domain);
+
+          const owner = await runWithTenant(provisionedShop._id, async () =>
+            User.findById(approved.payload.data.application.ownerUser),
+          );
+          assert.equal(owner.role, 'ADMIN');
+          assert.equal(owner.accountStatus, 'PENDING');
+          assert.equal(owner.isActive, false);
+          assert.equal(owner.password, undefined);
+          assert.equal(String(owner.tenantId), String(provisionedShop._id));
+          assert.ok(
+            await runWithTenant(provisionedShop._id, async () =>
+              await ShopSettings.findOne({ key: 'main' }),
+            ),
+          );
+
+          const activationToken = activationUrl.searchParams.get('token');
+          assert.ok(activationToken);
+          const activation = await call(`/public/applications/${applicationId}/activate`, {
+            method: 'POST',
+            body: { token: activationToken, password: 'Blue-Thimble-Owner-Password-2026' },
+            ip: '198.51.100.76',
+          });
+          assert.equal(activation.response.status, 200, JSON.stringify(activation.payload));
+          assert.equal(activation.payload.data.user.role, 'ADMIN');
+          assert.ok(activation.token);
+          const activatedOwner = await runWithTenant(provisionedShop._id, async () =>
+            User.findById(owner._id),
+          );
+          assert.equal(activatedOwner.accountStatus, 'ACTIVE');
+          assert.equal(activatedOwner.isActive, true);
+          const activatedApplication = await ShopApplication.findById(applicationId).select(
+            '+activationTokenHash',
+          );
+          assert.ok(activatedApplication.activatedAt);
+          assert.equal(activatedApplication.activationTokenHash, undefined);
+          const replay = await call(`/public/applications/${applicationId}/activate`, {
+            method: 'POST',
+            body: { token: activationToken, password: 'Another-Owner-Password-2026' },
+            ip: '198.51.100.77',
+          });
+          assert.equal(replay.response.status, 400);
+
+          const dashboard = await call('/dashboard/summary', {
+            token: activation.token,
+            headers: { origin: `http://${provisionedShop.domains[0]}` },
+          });
+          assert.equal(dashboard.response.status, 200, JSON.stringify(dashboard.payload));
+
+          const otherShop = await Shop.create({
+            name: 'Isolated Other Atelier',
+            slug: `isolated-${Date.now()}`,
+            domains: [`isolated-${Date.now()}.example.test`],
+          });
+          const otherOwner = await runWithTenant(otherShop._id, async () =>
+            User.create({
+              name: 'Other Atelier Owner',
+              email: 'isolated-owner@example.test',
+              password: await bcrypt.hash('Other-QA-Owner-Password-2026', 4),
+              role: 'ADMIN',
+            }),
+          );
+          const otherLogin = await call('/auth/admin/login', {
+            method: 'POST',
+            body: { email: otherOwner.email, password: 'Other-QA-Owner-Password-2026' },
+            headers: { origin: `https://${otherShop.domains[0]}` },
+            ip: '198.51.100.78',
+          });
+          assert.equal(otherLogin.response.status, 200);
+          const crossShop = await call('/dashboard/summary', {
+            token: otherLogin.token,
+            headers: { origin: `http://${provisionedShop.domains[0]}` },
+          });
+          assert.equal(crossShop.response.status, 401);
+
+          const unknownShop = await call('/public/applications', {
+            method: 'GET',
+            headers: { host: 'unregistered.example.test' },
+          });
+          assert.equal(unknownShop.response.status, 404);
+        },
+      );
+
+      await t.test(
+        'shop host without Origin keeps admin sessions tenant-scoped',
+        async () => {
+          const harryShop = await Shop.create({
+            name: 'Harry Tailors',
+            slug: 'harrytailors',
+            domains: ['harrytailors.localhost'],
+          });
+          const otherShop = await Shop.create({
+            name: 'Another QA Shop',
+            slug: `another-${Date.now()}`,
+            domains: ['another-shop.example.test'],
+          });
+          const password = 'Harry-QA-Owner-Password-2026';
+          const createAdmin = async (tenant, email, name) =>
+            runWithTenant(tenant._id, async () =>
+              User.create({
+                name,
+                email,
+                password: await bcrypt.hash(password, 4),
+                role: 'ADMIN',
+              }),
+            );
+          const harryAdmin = await createAdmin(
+            harryShop,
+            'harry-owner@example.test',
+            'Harry Shop Owner',
+          );
+          await createAdmin(otherShop, 'other-owner@example.test', 'Other Shop Owner');
+
+          const login = await call('/auth/admin/login', {
+            method: 'POST',
+            body: { email: harryAdmin.email, password },
+            headers: { origin: 'http://harrytailors.localhost:5174' },
+            ip: '198.51.100.61',
+          });
+          assert.equal(login.response.status, 200, JSON.stringify(login.payload));
+          const claims = jwt.verify(login.token, process.env.JWT_SECRET);
+          assert.equal(String(claims.sub), String(harryAdmin._id));
+          assert.equal(String(claims.tid), String(harryShop._id));
+          assert.equal(String(harryAdmin.tenantId), String(harryShop._id));
+
+          const hostOnlyHeaders = { host: 'harrytailors.localhost:5174' };
+          const dashboard = await call('/dashboard/summary', {
+            token: login.token,
+            headers: hostOnlyHeaders,
+          });
+          assert.equal(dashboard.response.status, 200, JSON.stringify(dashboard.payload));
+          const reports = await call('/dashboard/reports', {
+            token: login.token,
+            headers: hostOnlyHeaders,
+          });
+          assert.equal(reports.response.status, 200, JSON.stringify(reports.payload));
+          const orders = await call('/orders', {
+            token: login.token,
+            headers: hostOnlyHeaders,
+          });
+          assert.equal(orders.response.status, 200, JSON.stringify(orders.payload));
+
+          const otherLogin = await call('/auth/admin/login', {
+            method: 'POST',
+            body: { email: 'other-owner@example.test', password },
+            headers: { origin: 'https://another-shop.example.test' },
+            ip: '198.51.100.62',
+          });
+          assert.equal(otherLogin.response.status, 200, JSON.stringify(otherLogin.payload));
+          const crossShop = await call('/dashboard/summary', {
+            token: otherLogin.token,
+            headers: hostOnlyHeaders,
+          });
+          assert.equal(crossShop.response.status, 401);
+          assert.equal(crossShop.payload.message, 'This account belongs to a different shop');
+
+          const unknownHost = await call('/dashboard/summary', {
+            token: login.token,
+            headers: { host: 'unknown-shop.localhost:5174' },
+          });
+          assert.equal(unknownHost.response.status, 404);
+          assert.match(unknownHost.payload.message, /shop address is not configured/i);
+        },
+      );
+
       await t.test('CSRF bootstrap returns a pre-login token and login rotates it', async () => {
         const bootstrap = await call('/auth/csrf');
         assert.equal(bootstrap.response.status, 200);
@@ -320,6 +641,13 @@ test(
         assert.match(loggedOut.setCookie, /tailor_token=;/);
         assert.match(loggedOut.setCookie, /csrf_token=;/);
         assert.equal((await call('/auth/me')).response.status, 401);
+      });
+
+      await t.test('routine session checks do not consume the login attempt limit', async () => {
+        for (let attempt = 0; attempt < 105; attempt += 1) {
+          const response = await call('/auth/me', { ip: '198.51.100.91' });
+          assert.equal(response.response.status, 401, JSON.stringify(response.payload));
+        }
       });
 
       await t.test('cookie attributes and lifetime match the configured session', async () => {

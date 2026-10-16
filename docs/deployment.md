@@ -19,6 +19,18 @@ Install dependencies in `backend/` and `frontend/`; run `npm --prefix frontend r
 - Shops are tenant-scoped in the API. Use `npm run migrate:tenants` only for a backed-up local loopback database when upgrading a prior single-shop install. The migration refuses production or remote MongoDB targets.
 - Each tenant must have at least one registered domain in its `Shop` record. DNS, TLS, and reverse proxy configuration must send the original shop hostname to the same-origin frontend/API deployment. Do not serve all shops behind a single unscoped API hostname.
 - Create each shop and first owner from the operator environment with `npm run provision:shop-admin`; there is no public owner registration endpoint.
+- The public SaaS application flow uses a separate `PlatformAdmin` identity and `/platform/*` API. It is not a tenant admin role and is never created through public registration.
+
+## Public SaaS onboarding deployment
+
+1. Set `PLATFORM_ORIGINS` to the exact comma-separated origin(s) of the marketing and platform-operator frontend, including `https://` and any non-default port. Do not use `*` with credentialed requests. Keep `CLIENT_URL` configured for any existing tenant UI origins.
+2. Set `PLATFORM_ROOT_DOMAIN` to the production tenant subdomain root, such as `shops.example.com`. Before approving applications, configure wildcard DNS for `*.shops.example.com`, HTTPS certificates, and reverse-proxy/frontend hosting that preserves the shop hostname and forwards `/api/v1` and Socket.IO traffic to the API. Provisioning will fail safely in production if this variable is absent.
+3. Deploy the backend/frontend code and run `npm --prefix backend run ensure:platform-indexes` once against the target database. This creates indexes for active duplicate applications, shop slugs/domains, and application-to-shop/owner provisioning links. Resolve any existing duplicate records before creating unique indexes.
+4. Create the platform operator through a private deployment shell: temporarily set `PLATFORM_ADMIN_NAME`, `PLATFORM_ADMIN_EMAIL`, and a unique `PLATFORM_ADMIN_PASSWORD` of at least 16 characters, then run `npm --prefix backend run provision:platform-admin`. Remove the password from the shell/environment after use. This command only creates credentials in the separate platform-admin collection.
+5. Verify `/` and `/apply` from the configured marketing origin, then sign in at `/platform/login`. A submitted application remains an enquiry until an operator approves it. Approval creates a tenant and inactive owner without a password and returns a one-time, 48-hour activation URL. Deliver that link to the verified owner using an approved secure channel; no email/SMS delivery is included. If delivery fails, generate a replacement from the application review screen.
+6. The owner uses the activation link to set a password and activate their account, then signs in at the new shop subdomain. Confirm the tenant branding/login and private-data isolation before handoff.
+
+Local development uses `<generated-slug>.localhost:5174` and does not require `PLATFORM_ROOT_DOMAIN`. The application records a custom-domain preference but does not attach or validate custom domains; verify ownership and configure DNS, TLS, and reverse-proxy routing before adding a domain to a shop. Payment status is operator-managed only. No subscription billing, payment gateway, email, or SMS provider is integrated.
 
 ## Verification
 

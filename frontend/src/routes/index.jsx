@@ -24,6 +24,10 @@ const Reports = lazy(() => import('../pages/Reports.jsx'));
 const Settings = lazy(() => import('../pages/Settings.jsx'));
 const Payroll = lazy(() => import('../pages/Payroll.jsx'));
 const AuditLogs = lazy(() => import('../pages/AuditLogs.jsx'));
+const ApplyShop = lazy(() => import('../pages/ApplyShop.jsx'));
+const ActivateOwner = lazy(() => import('../pages/ActivateOwner.jsx'));
+const PlatformAdminLogin = lazy(() => import('../pages/PlatformAdminLogin.jsx'));
+const PlatformApplications = lazy(() => import('../pages/PlatformApplications.jsx'));
 const TailorDashboard = lazy(() =>
   import('../pages/RoleDashboards.jsx').then((module) => ({ default: module.TailorDashboard })),
 );
@@ -52,6 +56,10 @@ export default function AppRoutes() {
     <Suspense fallback={<Loading />}>
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/apply" element={<ApplyShop />} />
+        <Route path="/activate" element={<ActivateOwner />} />
+        <Route path="/platform/login" element={<PlatformAdminLogin />} />
+        <Route path="/platform/applications" element={<PlatformApplications />} />
         <Route path="/access" element={<RoleSelection />} />
         <Route path="/login" element={<AuthPage mode="customer" />} />
         <Route path="/register" element={<AuthPage mode="customer-register" />} />

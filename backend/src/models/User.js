@@ -10,6 +10,11 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: Object.values(ROLES), default: ROLES.CUSTOMER, index: true },
     phone: { type: String, trim: true, default: '' },
     phoneNormalized: { type: String },
+    provisioningApplication: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'ShopApplication',
+      default: undefined,
+    },
     defaultBaseSalary: { type: Number, min: 0, default: null },
     accountStatus: {
       type: String,
@@ -29,6 +34,10 @@ userSchema.index(
 userSchema.index(
   { tenantId: 1, phoneNormalized: 1 },
   { unique: true, partialFilterExpression: { phoneNormalized: { $type: 'string' } } },
+);
+userSchema.index(
+  { provisioningApplication: 1 },
+  { unique: true, sparse: true, name: 'provisioned_owner_application_unique' },
 );
 userSchema.pre('validate', function () {
   this.phoneNormalized = this.phone ? normalizePhone(this.phone) : undefined;

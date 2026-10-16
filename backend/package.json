@@ -9,7 +9,9 @@
     "seed": "node src/seeders/seed.js",
     "migrate:identity": "node src/seeders/migrateIdentity.js",
     "migrate:tenants": "node src/seeders/migrateTenants.js",
+    "ensure:platform-indexes": "node src/seeders/ensurePlatformIndexes.js",
     "provision:shop-admin": "node src/seeders/provisionShopAdmin.js",
+    "provision:platform-admin": "node src/seeders/provisionPlatformAdmin.js",
     "test": "node --test"
   },
   "dependencies": {

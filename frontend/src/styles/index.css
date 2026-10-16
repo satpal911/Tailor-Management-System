@@ -2420,7 +2420,7 @@ a {
     min-height: 33px;
   }
 }
-@media (max-width: 360px) {
+@media (max-width: 640px) {
   .public-nav .actions > .text-link {
     display: none;
   }

@@ -11,6 +11,7 @@ A MERN application for managing a tailoring shop's customers, measurements, orde
 - Service catalog, appointments, notifications, reporting, and shop settings.
 - Search, filtering, sorting, pagination, audit records, and scoped Socket.IO events.
 - Optional Cloudinary image uploads.
+- Public SaaS marketing and shop-application flow with a separate platform-operator review workspace.
 
 ## Technology and architecture
 
@@ -58,6 +59,14 @@ The same app can host shops with isolated staff, customers, catalog, orders, pay
 To add a shop and its owner, set `PROVISION_SHOP_NAME`, `PROVISION_SHOP_SLUG`, `PROVISION_SHOP_DOMAIN`, `PROVISION_ADMIN_NAME`, `PROVISION_ADMIN_EMAIL`, and `PROVISION_ADMIN_PASSWORD` in the operator's private `backend/.env` (optional `PROVISION_ADMIN_PHONE`), then run `npm run provision:shop-admin` from the repository root. Use a unique slug/domain and a unique password of at least 12 characters. To add another admin to an existing shop, reuse its slug/domain and provide a new admin email and password. Duplicate account identities are rejected by the shop-scoped indexes. The owner signs in at `https://<shop-domain>/admin/login`. Never configure this command's secrets in frontend variables or commit them.
 
 For each domain, point DNS to the app deployment and configure TLS and the reverse proxy so the frontend and `/api/v1` use the same shop hostname and the original `Host`/`Origin` headers are preserved. Add the domain to the shop using `PROVISION_SHOP_DOMAIN` when rerunning the CLI for an ownerless shop. Custom DNS, TLS certificates, and hosting routes remain deployment setup; the app does not provision those services.
+
+## SaaS applications and onboarding
+
+The public landing page is served at `/`; prospective shops submit an application at `/apply`. Submission only creates a pending enquiry; it does not create a shop or owner. Platform operators sign in separately at `/platform/login` and review applications at `/platform/applications`. After explicit approval, the API creates the tenant and a pending owner account, then returns a one-time activation link for the operator to deliver securely. The owner sets their own password at `/activate`. No activation email/SMS or online payment gateway is configured; the operator tracks payments manually.
+
+Bootstrap a platform operator from a private backend environment. Set `PLATFORM_ADMIN_NAME`, `PLATFORM_ADMIN_EMAIL`, and a unique `PLATFORM_ADMIN_PASSWORD` of at least 16 characters, then run `npm --prefix backend run provision:platform-admin`. Remove the temporary password from the environment after provisioning. Public platform-admin registration is not available. Before deploying, run `npm --prefix backend run ensure:platform-indexes` against the production database so the duplicate-prevention and provisioning indexes are installed.
+
+For local development, approved shops use `<generated-slug>.localhost` on port `5174`. In production, configure `PLATFORM_ROOT_DOMAIN` (for example, `shops.example.com`) and set `PLATFORM_ORIGINS` to the exact comma-separated HTTPS origin(s) hosting the marketing and platform UI. Configure wildcard DNS, certificates, and reverse-proxy routing for `<generated-slug>.<PLATFORM_ROOT_DOMAIN>`; preserve the incoming hostname when proxying to the app. `customDomain` is collected as a preference only: the operator must verify ownership and configure DNS, TLS, and routing before attaching a custom domain. See [deployment](docs/deployment.md) for the full checklist.
 
 ## Tests and checks
 

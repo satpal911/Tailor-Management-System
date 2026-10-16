@@ -22,6 +22,8 @@ import salaryRoutes from './routes/salaryRoutes.js';
 import auditRoutes from './routes/auditRoutes.js';
 import { isShopOrigin, resolveTenant } from './middleware/tenantMiddleware.js';
 import { getPublicShop } from './controllers/shopController.js';
+import publicRoutes from './routes/publicRoutes.js';
+import platformRoutes from './routes/platformRoutes.js';
 
 const app = express();
 app.disable('x-powered-by');
@@ -29,7 +31,11 @@ const proxyHops = process.env.TRUST_PROXY_HOPS;
 app.set('trust proxy', proxyHops ? Math.max(0, Number.parseInt(proxyHops, 10) || 0) : false);
 app.use(helmet());
 const allowedOrigins = new Set(
-  (process.env.CLIENT_URL || process.env.CLIENT_ORIGIN || 'http://localhost:5174')
+  [
+    process.env.CLIENT_URL || process.env.CLIENT_ORIGIN || 'http://localhost:5174',
+    process.env.PLATFORM_ORIGINS || '',
+  ]
+    .join(',')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean),
@@ -59,13 +65,11 @@ app.use(
   '/api/v1',
   rateLimit({ windowMs: 15 * 60 * 1000, limit: 600, standardHeaders: true, legacyHeaders: false }),
 );
+app.use('/api/v1/public', publicRoutes);
+app.use('/api/v1/platform', platformRoutes);
 app.use('/api/v1', resolveTenant);
 app.get('/api/v1/shop', getPublicShop);
-app.use(
-  '/api/v1/auth',
-  rateLimit({ windowMs: 15 * 60 * 1000, limit: 100, standardHeaders: true, legacyHeaders: false }),
-  authRoutes,
-);
+app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/customers', customerRoutes);
 app.use('/api/v1/tailors', tailorRoutes);
