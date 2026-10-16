@@ -67,7 +67,7 @@ export const setBaseSalary = asyncHandler(async (req, res) => {
   const employeeId = req.user.role === 'TAILOR' ? req.user._id : req.body.employee;
   const employee = await User.findOne({
     _id: employeeId,
-    role: { $in: ['TAILOR', 'ADMIN'] },
+    role: 'TAILOR',
     accountStatus: 'ACTIVE',
     isActive: true,
   });

@@ -25,10 +25,8 @@ router.get(
 );
 router.patch(
   '/base-salary',
-  allowRoles('ADMIN', 'TAILOR'),
-  body('employee')
-    .if((_value, { req }) => req.user?.role === 'ADMIN')
-    .isMongoId(),
+  allowRoles('ADMIN'),
+  body('employee').isMongoId(),
   body('baseSalary').isFloat({ min: 0 }),
   validate,
   setBaseSalary,

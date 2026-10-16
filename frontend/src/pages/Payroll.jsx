@@ -180,11 +180,6 @@ export default function Payroll() {
             </Button>
           </>
         )}
-        {!admin && (
-          <Button variant="outline" onClick={openBaseSalary}>
-            Change base salary
-          </Button>
-        )}
       </PageHeader>
       <div className="metric-grid">
         <Metric
@@ -463,34 +458,32 @@ export default function Payroll() {
           </form>
         </Modal>
       )}
-      {modal === 'base-salary' && (
+      {admin && modal === 'base-salary' && (
         <Modal
-          title={admin ? 'Change employee base salary' : 'Change base salary'}
+          title="Change tailor base salary"
           onClose={() => setModal('')}
         >
           <form onSubmit={baseSalaryForm.handleSubmit(saveBaseSalary)}>
-            {admin && (
-              <label className="field">
-                Employee
-                <select
-                  required
-                  {...baseSalaryForm.register('employee', {
-                    required: true,
-                    onChange: (event) => {
-                      const employee = staff.find((person) => person._id === event.target.value);
-                      baseSalaryForm.setValue('baseSalary', employee?.defaultBaseSalary ?? '');
-                    },
-                  })}
-                >
-                  <option value="">Select an active tailor</option>
-                  {staff.map((person) => (
-                    <option key={person._id} value={person._id}>
-                      {person.name} · {person.phone}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
+            <label className="field">
+              Employee
+              <select
+                required
+                {...baseSalaryForm.register('employee', {
+                  required: true,
+                  onChange: (event) => {
+                    const employee = staff.find((person) => person._id === event.target.value);
+                    baseSalaryForm.setValue('baseSalary', employee?.defaultBaseSalary ?? '');
+                  },
+                })}
+              >
+                <option value="">Select an active tailor</option>
+                {staff.map((person) => (
+                  <option key={person._id} value={person._id}>
+                    {person.name} · {person.phone}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="field">
               Monthly base salary
               <input

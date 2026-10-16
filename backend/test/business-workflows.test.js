@@ -1512,6 +1512,22 @@ test(
             body: { employee: tailorProfile.user, baseSalary: 32000 },
           });
           assert.equal(changedBaseSalary.response.status, 200);
+          const tailorCannotChangeOwnBaseSalary = await call('/salaries/base-salary', {
+            method: 'PATCH',
+            token: tailorToken,
+            body: { employee: tailorProfile.user, baseSalary: 50000 },
+          });
+          assert.equal(tailorCannotChangeOwnBaseSalary.response.status, 403);
+          assert.equal(
+            (await User.findById(tailorProfile.user)).defaultBaseSalary,
+            32000,
+          );
+          const tailorCannotChangeAnotherBaseSalary = await call('/salaries/base-salary', {
+            method: 'PATCH',
+            token: tailorToken,
+            body: { employee: secondTailorUser._id, baseSalary: 50000 },
+          });
+          assert.equal(tailorCannotChangeAnotherBaseSalary.response.status, 403);
           const nextMonthSalary = await call('/salaries', {
             method: 'POST',
             token: adminToken,
