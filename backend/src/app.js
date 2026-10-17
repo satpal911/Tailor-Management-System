@@ -1,4 +1,7 @@
 import express from 'express';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -87,6 +90,22 @@ app.use('/api/v1/appointments', appointmentRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/salaries', salaryRoutes);
 app.use('/api/v1/audit-logs', auditRoutes);
+if (process.env.NODE_ENV === 'production') {
+  const projectRoot = fileURLToPath(new URL('../../', import.meta.url));
+  const frontendDist = path.join(projectRoot, 'frontend', 'dist');
+  const frontendIndex = path.join(frontendDist, 'index.html');
+  if (!existsSync(frontendIndex)) {
+    throw new Error(
+      'Frontend build is missing. Run the frontend production build before starting the API.',
+    );
+  }
+  app.use(express.static(frontendDist, { index: false }));
+  app.get(/^\/(?!api(?:\/|$)).*/, (_req, res, next) => {
+    res.sendFile(frontendIndex, (error) => {
+      if (error) next(error);
+    });
+  });
+}
 app.use(notFound);
 app.use(errorHandler);
 export default app;

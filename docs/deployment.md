@@ -6,9 +6,11 @@ Use a supported Node.js release (20.19+ or 24 recommended) and a production Mong
 
 ## Build and run
 
-Install dependencies in `backend/` and `frontend/`; run `npm --prefix frontend run build` to produce `frontend/dist`. Run the backend with `npm --prefix backend start` under a process manager or container. Serve the static frontend from a CDN/web server and route `/api/v1` and Socket.IO traffic to the API. Configure HTTPS, WebSocket support or polling fallback, health checks, logs, and graceful shutdown.
+Install dependencies in `backend/` and `frontend/`; run `npm --prefix frontend run build` to produce `frontend/dist`. In production, the backend serves that frontend build together with `/api/v1` and Socket.IO from the same origin. Run it with `npm --prefix backend start` under a process manager or container. Configure HTTPS, WebSocket support or polling fallback, health checks, logs, and graceful shutdown. The backend intentionally fails to start in production if the frontend build is missing.
 
-For the Render Blueprint deployment, Render supplies `RENDER_EXTERNAL_URL` and `RENDER_EXTERNAL_HOSTNAME`. The app uses these as the allowed origin and resolves the exact Render-assigned hostname to `DEFAULT_SHOP_SLUG` (default `main`) when that host is not explicitly registered on the shop. Localhost continues to resolve to the same default shop. Set the Render service's `MONGO_URI` to the same Atlas database used by local development if both environments should share accounts and data. Other unregistered hosts remain rejected; register custom shop domains on their shop records.
+The repository's `render.yaml` Blueprint creates a free Render web service. Connect it to GitHub, provide `MONGO_URI` in Render's Blueprint form using the same Atlas database as local development, and deploy. Render supplies `RENDER_EXTERNAL_URL` and `RENDER_EXTERNAL_HOSTNAME`; the app uses the exact assigned Render hostname as the default shop host while localhost continues to resolve to the same default shop. Other unregistered hosts remain rejected; register custom shop domains on their shop records. Free services may sleep while idle.
+
+For a Render Blueprint deployment, the app uses Render's external URL as its allowed client origin and resolves the exact Render-assigned hostname to `DEFAULT_SHOP_SLUG` (default `main`) when that host is not explicitly registered on the shop. Localhost continues to resolve to the same default shop. Set the Render service's `MONGO_URI` to the same Atlas database used by local development if both environments should share accounts and data.
 
 ## Production operations
 
