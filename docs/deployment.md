@@ -1,12 +1,30 @@
 # Deployment
 
+## Recommended: Render + MongoDB Atlas
+
+This project is a React/Vite SPA and an Express API with cookie authentication, tenant-specific shop domains, and Socket.IO. Deploy the frontend and API together in one Render web service so browser requests, cookies, and live updates stay on the same hostname. Use MongoDB Atlas for persistent data and Cloudinary for persistent customer/design images. Render's local filesystem is not a durable upload store.
+
+The repository includes [`render.yaml`](../render.yaml), a Render Blueprint for this single-service deployment. It uses a paid Starter web service; select a different plan in Render if it suits your availability and budget. Atlas and Cloudinary may have separate costs.
+
+### Deployment steps
+
+1. **Prepare accounts and a domain.** Create a Render account, a MongoDB Atlas project/cluster, and (if uploads are needed) a Cloudinary account. A custom domain is recommended. The SaaS tenant setup needs a domain you control, such as `shops.example.com`, with wildcard DNS and TLS for `*.shops.example.com`, as well as the root domain for the marketing/platform UI. A single-shop setup can start with the Render-provided domain.
+2. **Secure Atlas.** Create a database user with access only to the app database. Allow only the Render service's outbound IP addresses in Atlas Network Access (or use a static outbound IP option); do not leave the production database open to all IPs. Copy the TLS MongoDB connection string for the app database.
+3. **Configure DNS and Render domains.** In Render, create a Blueprint deployment from this repository. For a custom single-shop domain, attach that domain to the web service. For SaaS onboarding, attach both the marketing/platform root domain and wildcard tenant domain, then add the DNS records Render specifies. Wait for DNS and HTTPS certificates to become active. A single shop can start with the Render-provided domain.
+4. **Set the Blueprint environment values.** Set `MONGO_URI` to the Atlas connection string and `CLIENT_URL` to the exact HTTPS origin serving the app (for example, `https://shops.example.com` or the Render-provided domain). Render generates `JWT_SECRET`; keep the Blueprint's production, secure-cookie, and trusted-proxy settings. For SaaS onboarding, also set `PLATFORM_ROOT_DOMAIN` to the tenant root without a scheme (for example, `shops.example.com`) and `PLATFORM_ORIGINS` to any additional exact HTTPS origin(s), comma-separated. Do not put secrets in frontend/Vite variables or commit them.
+5. **Deploy and check health.** Render installs the backend and frontend dependencies, builds `frontend/dist`, then starts the API, which serves the built SPA and API together. Wait for a successful deployment and confirm `https://<your-domain>/api/v1/health` returns a successful health response and the homepage loads over HTTPS.
+6. **Install SaaS indexes if needed.** If using the SaaS application flow, run `npm --prefix backend run ensure:platform-indexes` once from the Render service shell against the production database. Investigate any duplicate-record error before proceeding; do not run the local-only tenant migration against Atlas.
+7. **Create the first accounts deliberately.** For a single shop, use the private operator environment variables with `npm --prefix backend run provision:shop-admin`; set `PROVISION_SHOP_DOMAIN` to the domain attached to Render (or its Render-provided domain). For SaaS onboarding, provision a platform operator with `npm --prefix backend run provision:platform-admin`. Create the operator using a temporary password and remove it immediately afterward. Follow the existing [SaaS onboarding](./deployment.md#public-saas-onboarding-deployment) instructions to approve shops and deliver owner activation links securely. Never run the development `seed` script against production.
+8. **Verify the full workflow.** Test sign-in/sign-out and page refresh (cookies), API calls, a live Socket.IO update, tenant/shop-domain resolution, an owner/customer workflow, and image upload if Cloudinary is configured. Confirm an unknown `/api/...` URL still returns an API not-found response rather than the SPA.
+9. **Prepare operations before public launch.** Enable Atlas backups and test restoration, configure Render logs/alerts, and document secret rotation and incident response. The app does not include email/SMS delivery, online payment processing, or subscription billing.
+
 ## Prerequisites and environment
 
 Use a supported Node.js release (20.19+ or 24 recommended) and a production MongoDB deployment with backups. Configure backend variables from `backend/.env.example`: `MONGO_URI`, a random `JWT_SECRET` of at least 32 characters, exact `CLIENT_URL` origins, `NODE_ENV=production`, secure cookie settings, and Cloudinary values if uploads are enabled. Set `TRUST_PROXY_HOPS` only to the actual trusted reverse-proxy chain length. The older `MONGODB_URI` and `CLIENT_ORIGIN` names remain accepted.
 
 ## Build and run
 
-Install dependencies in `backend/` and `frontend/`; run `npm --prefix frontend run build` to produce `frontend/dist`. Run the backend with `npm --prefix backend start` under a process manager or container. Serve the static frontend from a CDN/web server and route `/api/v1` and Socket.IO traffic to the API. Configure HTTPS, WebSocket support or polling fallback, health checks, logs, and graceful shutdown.
+Install dependencies in `backend/` and `frontend/`; run `npm --prefix frontend run build` to produce `frontend/dist`. In production, the backend serves this build as well as `/api/v1` and Socket.IO from the same origin. Run it with `npm --prefix backend start` under a process manager or container. Configure HTTPS, WebSocket support or polling fallback, health checks, logs, and graceful shutdown. The backend intentionally fails to start in production if the frontend build is missing.
 
 ## Production operations
 

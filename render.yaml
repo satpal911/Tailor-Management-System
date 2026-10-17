@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: tailor-management
+    runtime: node
+    plan: starter
+    buildCommand: npm ci --prefix backend && npm ci --prefix frontend && npm --prefix frontend run build
+    startCommand: npm --prefix backend start
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: COOKIE_SECURE
+        value: 'true'
+      - key: COOKIE_SAME_SITE
+        value: lax
+      - key: TRUST_PROXY_HOPS
+        value: '1'
+      - key: UPLOAD_MAX_MB
+        value: '5'
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLIENT_URL
+        sync: false
