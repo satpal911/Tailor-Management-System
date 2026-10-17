@@ -1279,3 +1279,135 @@ textarea[aria-invalid='true'] {
     font-size: clamp(36px, 11vw, 44px);
   }
 }
+
+:root {
+  font-size: 18px;
+}
+
+body {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.workspace-content {
+  padding: 36px 40px 56px;
+}
+
+.page-head,
+.app-page-header {
+  margin-bottom: 28px;
+}
+
+.page-head h1,
+.app-page-title {
+  font-size: clamp(32px, 2.6vw, 40px);
+}
+
+.page-head p,
+.app-page-subtitle {
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.eyebrow,
+.nav-label,
+.data-table th,
+.badge {
+  font-size: 12px;
+}
+
+.app-nav,
+.topbar,
+.button,
+.field,
+body :is(input, select, textarea, .search-box input) {
+  font-size: 15px;
+}
+
+.app-nav {
+  min-height: 44px;
+}
+
+.button,
+body :is(input, select, textarea) {
+  min-height: 46px;
+}
+
+.field {
+  gap: 9px;
+  margin-bottom: 18px;
+}
+
+.data-table th,
+.data-table td {
+  padding: 14px 15px;
+}
+
+.data-table td {
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+body :is(small, .field-error, .field small, .profile-help, .muted-copy),
+.metric span,
+.metric small,
+.dashboard-metrics .ui-metric .ui-metric-label,
+.dashboard-metrics .ui-metric .ui-metric-note {
+  font-size: 13px;
+}
+
+.empty-state {
+  font-size: 16px;
+}
+
+.metric-grid {
+  gap: 18px;
+}
+
+.metric,
+.ui-metric {
+  padding: 20px;
+}
+
+.metric strong,
+.ui-metric-value,
+.dashboard-metrics .metric strong,
+.dashboard-metrics .ui-metric .ui-metric-value {
+  font-size: clamp(32px, 2.4vw, 42px);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1150px) {
+  .workspace-content {
+    padding: 28px 24px 44px;
+  }
+}
+
+@media (max-width: 767px) {
+  .workspace-content {
+    padding: 24px 18px 36px;
+  }
+
+  .metric-grid {
+    gap: 14px;
+  }
+
+  .metric,
+  .ui-metric {
+    padding: 16px;
+  }
+
+  .metric strong,
+  .ui-metric-value,
+  .dashboard-metrics .metric strong,
+  .dashboard-metrics .ui-metric .ui-metric-value {
+    font-size: clamp(28px, 7vw, 34px);
+  }
+}
+
+@media (max-width: 380px) {
+  .workspace-content {
+    padding: 20px 14px 32px;
+  }
+}
