@@ -15,7 +15,12 @@ function cookieToken(header = '') {
 }
 export function attachSockets(httpServer) {
   const allowedOrigins = new Set(
-    (process.env.CLIENT_URL || process.env.CLIENT_ORIGIN || 'http://localhost:5174')
+    (
+      process.env.CLIENT_URL ||
+      process.env.CLIENT_ORIGIN ||
+      process.env.RENDER_EXTERNAL_URL ||
+      'http://localhost:5174'
+    )
       .split(',')
       .map((origin) => origin.trim())
       .filter(Boolean),

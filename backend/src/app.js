@@ -35,7 +35,10 @@ app.set('trust proxy', proxyHops ? Math.max(0, Number.parseInt(proxyHops, 10) ||
 app.use(helmet());
 const allowedOrigins = new Set(
   [
-    process.env.CLIENT_URL || process.env.CLIENT_ORIGIN || 'http://localhost:5174',
+    process.env.CLIENT_URL ||
+      process.env.CLIENT_ORIGIN ||
+      process.env.RENDER_EXTERNAL_URL ||
+      'http://localhost:5174',
     process.env.PLATFORM_ORIGINS || '',
   ]
     .join(',')

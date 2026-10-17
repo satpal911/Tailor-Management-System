@@ -19,7 +19,12 @@ if (
   throw new Error('SameSite=None cookies require COOKIE_SECURE=true');
 if (process.env.NODE_ENV === 'production' && process.env.COOKIE_SECURE !== 'true')
   throw new Error('COOKIE_SECURE=true is required in production');
-if (process.env.NODE_ENV === 'production' && !process.env.CLIENT_URL && !process.env.CLIENT_ORIGIN)
+if (
+  process.env.NODE_ENV === 'production' &&
+  !process.env.CLIENT_URL &&
+  !process.env.CLIENT_ORIGIN &&
+  !process.env.RENDER_EXTERNAL_URL
+)
   throw new Error('CLIENT_URL is required in production');
 const server = http.createServer(app);
 const io = attachSockets(server);
