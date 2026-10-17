@@ -1783,6 +1783,10 @@ test(
               oneImage.payload.data.designImages[0].publicId,
               'qa/order-image-1',
             );
+            assert.equal(
+              oneImage.payload.data.designImages[0].url,
+              'https://cdn.example.test/order-1.png',
+            );
 
             const multipleImages = await call('/orders', {
               method: 'POST',

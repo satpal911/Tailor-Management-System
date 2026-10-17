@@ -19,8 +19,10 @@ export async function uploadImages(
     });
   if (!enabled)
     throw Object.assign(
-      new Error('Image uploads are not configured. Set the Cloudinary environment variables.'),
-      { statusCode: 503 },
+      new Error(
+        'Image uploads are not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET on the backend, then restart it.',
+      ),
+      { statusCode: 503, expose: true },
     );
   const results = await Promise.allSettled(
     files.map(
@@ -49,9 +51,10 @@ export async function uploadImages(
   const failed = results.find((result) => result.status === 'rejected');
   if (failed) {
     await Promise.allSettled(uploaded.map((image) => uploader.destroy(image.publicId)));
-    throw Object.assign(new Error('Image storage provider could not store the image'), {
-      statusCode: 502,
-    });
+    throw Object.assign(
+      new Error('Cloudinary could not store the image. Check the backend configuration and retry.'),
+      { statusCode: 502, expose: true },
+    );
   }
   return uploaded;
 }
