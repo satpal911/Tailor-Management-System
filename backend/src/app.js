@@ -1,7 +1,4 @@
 import express from 'express';
-import { existsSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -35,10 +32,7 @@ app.set('trust proxy', proxyHops ? Math.max(0, Number.parseInt(proxyHops, 10) ||
 app.use(helmet());
 const allowedOrigins = new Set(
   [
-    process.env.CLIENT_URL ||
-      process.env.CLIENT_ORIGIN ||
-      process.env.RENDER_EXTERNAL_URL ||
-      'http://localhost:5174',
+    process.env.CLIENT_URL || process.env.CLIENT_ORIGIN || 'http://localhost:5174',
     process.env.PLATFORM_ORIGINS || '',
   ]
     .join(',')
@@ -90,22 +84,6 @@ app.use('/api/v1/appointments', appointmentRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/salaries', salaryRoutes);
 app.use('/api/v1/audit-logs', auditRoutes);
-if (process.env.NODE_ENV === 'production') {
-  const projectRoot = fileURLToPath(new URL('../../', import.meta.url));
-  const frontendDist = path.join(projectRoot, 'frontend', 'dist');
-  const frontendIndex = path.join(frontendDist, 'index.html');
-  if (!existsSync(frontendIndex)) {
-    throw new Error(
-      'Frontend build is missing. Run the frontend production build before starting the API.',
-    );
-  }
-  app.use(express.static(frontendDist, { index: false }));
-  app.get(/^\/(?!api(?:\/|$)).*/, (_req, res, next) => {
-    res.sendFile(frontendIndex, (error) => {
-      if (error) next(error);
-    });
-  });
-}
 app.use(notFound);
 app.use(errorHandler);
 export default app;
