@@ -2,7 +2,7 @@ services:
   - type: web
     name: tailor-management
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm ci --prefix backend && npm ci --prefix frontend && npm --prefix frontend run build
     startCommand: npm --prefix backend start
     healthCheckPath: /api/v1/health
