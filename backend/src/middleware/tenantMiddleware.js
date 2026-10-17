@@ -11,13 +11,21 @@ export function hostname(value) {
   }
 }
 
+export function isDefaultShopHost(host) {
+  if (['localhost', '127.0.0.1', '::1'].includes(host)) return true;
+  const renderHost = hostname(
+    process.env.RENDER_EXTERNAL_HOSTNAME || process.env.RENDER_EXTERNAL_URL,
+  );
+  return Boolean(renderHost) && host === renderHost;
+}
+
 export const resolveTenant = asyncHandler(async (req, res, next) => {
   const originHost = hostname(req.get('origin'));
   const requestHost = hostname(req.get('host'));
   const candidate = originHost || requestHost;
   let shop = candidate ? await Shop.findOne({ domains: candidate, isActive: true }) : null;
 
-  if (!shop && ['localhost', '127.0.0.1', '::1'].includes(candidate)) {
+  if (!shop && isDefaultShopHost(candidate)) {
     const slug = process.env.DEFAULT_SHOP_SLUG || 'main';
     shop = await Shop.findOne({ slug, isActive: true });
   }
@@ -34,6 +42,6 @@ export const resolveTenant = asyncHandler(async (req, res, next) => {
 export async function isShopOrigin(origin) {
   const host = hostname(origin);
   if (!host) return false;
-  if (['localhost', '127.0.0.1', '::1'].includes(host)) return true;
+  if (isDefaultShopHost(host)) return true;
   return Boolean(await Shop.exists({ domains: host, isActive: true }));
 }

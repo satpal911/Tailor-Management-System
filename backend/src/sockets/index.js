@@ -4,7 +4,7 @@ import User from '../models/User.js';
 import Customer from '../models/Customer.js';
 import Tailor from '../models/Tailor.js';
 import Shop from '../models/Shop.js';
-import { hostname, isShopOrigin } from '../middleware/tenantMiddleware.js';
+import { hostname, isDefaultShopHost, isShopOrigin } from '../middleware/tenantMiddleware.js';
 import { runWithTenant } from '../services/tenantContext.js';
 function cookieToken(header = '') {
   const raw = header
@@ -15,7 +15,12 @@ function cookieToken(header = '') {
 }
 export function attachSockets(httpServer) {
   const allowedOrigins = new Set(
-    (process.env.CLIENT_URL || process.env.CLIENT_ORIGIN || 'http://localhost:5174')
+    (
+      process.env.CLIENT_URL ||
+      process.env.CLIENT_ORIGIN ||
+      process.env.RENDER_EXTERNAL_URL ||
+      'http://localhost:5174'
+    )
       .split(',')
       .map((origin) => origin.trim())
       .filter(Boolean),
@@ -38,7 +43,7 @@ export function attachSockets(httpServer) {
       const host =
         hostname(socket.handshake.headers.origin) || hostname(socket.handshake.headers.host);
       let shop = host ? await Shop.findOne({ domains: host, isActive: true }) : null;
-      if (!shop && ['localhost', '127.0.0.1', '::1'].includes(host))
+      if (!shop && isDefaultShopHost(host))
         shop = await Shop.findOne({
           slug: process.env.DEFAULT_SHOP_SLUG || 'main',
           isActive: true,
