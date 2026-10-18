@@ -288,8 +288,38 @@ export async function approveApplication(req, res) {
     { $set: { status: 'APPROVED', provisioningStatus: 'IN_PROGRESS' } },
     { new: true },
   );
-  if (!application)
-    throw Object.assign(new Error('Provisioning is already in progress'), { statusCode: 409 });
+  if (!application) {
+  const currentApplication = await ShopApplication.findById(id).select(
+    'status provisioningStatus shop ownerUser domain',
+  );
+
+  if (!currentApplication) {
+    throw Object.assign(new Error('Shop application not found'), {
+      statusCode: 404,
+    });
+  }
+
+  if (currentApplication.status === 'REJECTED') {
+    throw Object.assign(new Error('Rejected applications cannot be approved'), {
+      statusCode: 409,
+    });
+  }
+
+  if (currentApplication.provisioningStatus === 'COMPLETE') {
+    return res.json({
+      success: true,
+      data: {
+        application: applicationView(currentApplication),
+        message: 'Shop is already provisioned.',
+      },
+    });
+  }
+
+  throw Object.assign(
+    new Error('Shop provisioning is currently in progress. Please try again shortly.'),
+    { statusCode: 409 },
+  );
+}
 
   try {
     const shop = await ensureShopAndOwner(application);
