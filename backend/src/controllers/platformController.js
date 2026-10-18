@@ -245,15 +245,11 @@ async function ensureShopAndOwner(application) {
   return shop;
 }
 
-
 function activationUrl(req, application, token) {
-  const baseUrl = (
-    process.env.PUBLIC_APP_URL || `${req.protocol}://${req.get('host')}`
-  ).replace(/\/+$/, '');
-
-  return `${baseUrl}/activate?application=${application._id}&token=${encodeURIComponent(token)}`;
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+  const port = process.env.NODE_ENV === 'production' ? '' : ':5174';
+  return `${protocol}://${application.domain}${port}/activate?application=${application._id}&token=${encodeURIComponent(token)}`;
 }
-
 
 async function issueActivationLink(req, application) {
   if (!application.ownerUser || application.activatedAt)
