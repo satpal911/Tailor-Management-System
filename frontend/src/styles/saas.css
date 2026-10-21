@@ -3404,3 +3404,88 @@ body,
     animation: none !important;
   }
 }
+
+
+/* Mobile fix: public landing page navbar actions */
+@media (max-width: 640px) {
+  .public-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .public-nav > .brand {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .public-nav .actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 0 0 auto;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  /* Keep Dark Mode and Request Demo on the same row */
+  .public-nav .actions > button:first-child {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 40px;
+    width: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0;
+  }
+
+  /* Keep Sign In visible */
+  .public-nav .actions > .text-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-height: 40px;
+    padding: 0 8px;
+    white-space: nowrap;
+  }
+
+  /* Prevent Request Demo from wrapping */
+  .public-nav .actions > .button,
+  .public-nav .actions > a.button,
+  .public-nav .actions > button.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 1 auto;
+    min-width: 0;
+    min-height: 40px;
+    padding-inline: 10px;
+    white-space: nowrap;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 380px) {
+  .public-nav {
+    gap: 5px;
+  }
+
+  .public-nav .actions {
+    gap: 5px;
+  }
+
+  .public-nav .actions > .text-link {
+    padding-inline: 5px;
+    font-size: 11px;
+  }
+
+  .public-nav .actions > .button,
+  .public-nav .actions > a.button,
+  .public-nav .actions > button.button {
+    padding-inline: 7px;
+    font-size: 10px;
+  }
+}
